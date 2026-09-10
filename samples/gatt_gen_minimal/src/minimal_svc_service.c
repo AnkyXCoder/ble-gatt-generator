@@ -12,15 +12,19 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <zephyr/toolchain.h>
+#include <zephyr/sys/printk.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/uuid.h>
 
 #include "minimal_svc_service.h"
 
-/* Internal data */
+/* Characteristic value buffers */
 static uint8_t minimal_svc_read_only_value[1];
 static uint8_t minimal_svc_read_write_value[20];
+
+/* Characteristic presentation format and extended properties data */
 
 /* Characteristic callbacks */
 static ssize_t minimal_svc_read_only_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
@@ -51,6 +55,8 @@ static ssize_t minimal_svc_read_write_write(struct bt_conn *conn, const struct b
 
 	return len;
 }
+
+/* Public API */
 
 /* Service declaration */
 BT_GATT_SERVICE_DEFINE(

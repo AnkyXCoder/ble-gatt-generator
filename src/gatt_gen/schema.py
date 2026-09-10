@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -32,6 +32,31 @@ PERMISSION_MAP = {
 }
 
 
+DESCRIPTOR_TYPES = {"cud", "cpf", "cep", "ccc"}
+
+
+class Descriptor(BaseModel):
+    """A GATT descriptor attached to a characteristic."""
+
+    type: str
+    value: Optional[str] = None
+    format: Optional[int] = None
+    exponent: Optional[int] = None
+    unit: Optional[int] = None
+    name_space: Optional[int] = None
+    description: Optional[int] = None
+    reliable_write: Optional[bool] = None
+    writable_aux: Optional[bool] = None
+
+    @field_validator("type")
+    @classmethod
+    def _valid_type(cls, v: str) -> str:
+        v = v.lower().strip()
+        if v not in DESCRIPTOR_TYPES:
+            raise ValueError(f"Unknown descriptor type: {v!r}")
+        return v
+
+
 class Characteristic(BaseModel):
     """A single GATT characteristic."""
 
@@ -41,6 +66,7 @@ class Characteristic(BaseModel):
     permissions: list[str]
     size: int = Field(default=1, ge=0)
     thread_safe: bool = True
+    descriptors: list[Descriptor] = Field(default_factory=list)
 
     @field_validator("uuid")
     @classmethod
@@ -66,7 +92,8 @@ class Characteristic(BaseModel):
     @model_validator(mode="after")
     def _properties_consistent(self) -> "Characteristic":
         if "notify" in self.properties and "indicate" in self.properties:
-            raise ValueError("A characteristic cannot be both notify and indicate in v1")
+            raise ValueError(
+                "A characteristic cannot be both notify and indicate in v1")
         if "write" in self.properties or "write_without_response" in self.properties:
             if "write" not in self.permissions and "write_encrypt" not in self.permissions and "write_authen" not in self.permissions and "write_lesc" not in self.permissions:
                 raise ValueError("Write property requires a write permission")
@@ -87,6 +114,42 @@ class Characteristic(BaseModel):
 
     def is_128_bit(self) -> bool:
         return len(self.uuid) > 6 or "-" in self.uuid
+
+    def has_notify(self) -> bool:
+        return "notify" in self.properties
+
+    def has_indicate(self) -> bool:
+        return "indicate" in self.properties
+
+    def needs_ccc(self) -> bool:
+        return self.has_notify() or self.has_indicate()
+
+    def ccc_flags(self) -> str:
+        """Return the default CCC value string (e.g. BT_GATT_CCC_NOTIFY)."""
+        flags = []
+        if self.has_notify():
+            flags.append("BT_GATT_CCC_NOTIFY")
+        if self.has_indicate():
+            flags.append("BT_GATT_CCC_INDICATE")
+        return " | ".join(flags) if flags else "0"
+
+    def cpf_descriptor(self) -> Optional[Descriptor]:
+        for d in self.descriptors:
+            if d.type == "cpf":
+                return d
+        return None
+
+    def cep_descriptor(self) -> Optional[Descriptor]:
+        for d in self.descriptors:
+            if d.type == "cep":
+                return d
+        return None
+
+    def cud_descriptor(self) -> Optional[Descriptor]:
+        for d in self.descriptors:
+            if d.type == "cud":
+                return d
+        return None
 
 
 class Service(BaseModel):

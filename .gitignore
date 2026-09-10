@@ -24,3 +24,4 @@ generated/
 # Zephyr build
 cmake-build-*/
 build/
+build-*/

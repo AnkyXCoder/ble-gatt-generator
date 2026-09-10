@@ -13,6 +13,30 @@
 #ifndef {{ service.name | c_guard }}
 #define {{ service.name | c_guard }}
 
+#include <stdint.h>
 #include <zephyr/bluetooth/gatt.h>
+
+{% for chrc in service.characteristics %}
+{% if chrc.has_notify() %}
+/** @brief Send a notification for the {{ chrc.name }} characteristic.
+ *
+ *  @param data Pointer to the data to notify.
+ *  @param len  Length of the data in bytes.
+ *
+ *  @return 0 on success or a negative error code.
+ */
+int {{ service.name }}_{{ chrc.name }}_notify(const uint8_t *data, uint16_t len);
+{% endif %}
+{% if chrc.has_indicate() %}
+/** @brief Send an indication for the {{ chrc.name }} characteristic.
+ *
+ *  @param data Pointer to the data to indicate.
+ *  @param len  Length of the data in bytes.
+ *
+ *  @return 0 on success or a negative error code.
+ */
+int {{ service.name }}_{{ chrc.name }}_indicate(const uint8_t *data, uint16_t len);
+{% endif %}
+{% endfor %}
 
 #endif /* {{ service.name | c_guard }} */

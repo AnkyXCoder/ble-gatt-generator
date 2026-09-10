@@ -13,6 +13,7 @@
 #ifndef ZEPHYR_GATT_GEN_MINIMAL_SVC_H_
 #define ZEPHYR_GATT_GEN_MINIMAL_SVC_H_
 
+#include <stdint.h>
 #include <zephyr/bluetooth/gatt.h>
 
 #endif /* ZEPHYR_GATT_GEN_MINIMAL_SVC_H_ */

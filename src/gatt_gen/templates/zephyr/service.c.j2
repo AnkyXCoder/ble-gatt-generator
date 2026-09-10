@@ -12,15 +12,40 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <zephyr/toolchain.h>
+#include <zephyr/sys/printk.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/uuid.h>
 
 #include "{{ service.name }}_service.h"
 
-/* Internal data */
+/* Characteristic value buffers */
 {% for chrc in service.characteristics %}
 static uint8_t {{ service.name }}_{{ chrc.name }}_value[{{ chrc.size }}];
+{% endfor %}
+
+/* Characteristic presentation format and extended properties data */
+{% for chrc in service.characteristics %}
+{% if chrc.cpf_descriptor() %}
+{% set cpf = chrc.cpf_descriptor() %}
+static struct bt_gatt_cpf {{ service.name }}_{{ chrc.name }}_cpf = {
+	.format = {{ cpf.format or 0 }},
+	.exponent = {{ cpf.exponent or 0 }},
+	.unit = {{ cpf.unit or 0 }},
+	.name_space = {{ cpf.name_space or 0 }},
+	.description = {{ cpf.description or 0 }},
+};
+{% endif %}
+{% if chrc.cep_descriptor() %}
+{% set cep = chrc.cep_descriptor() %}
+{% set props = [] %}
+{% if cep.reliable_write %}{% set _ = props.append('BT_GATT_CEP_RELIABLE_WRITE') %}{% endif %}
+{% if cep.writable_aux %}{% set _ = props.append('BT_GATT_CEP_WRITABLE_AUX') %}{% endif %}
+static struct bt_gatt_cep {{ service.name }}_{{ chrc.name }}_cep = {
+	.properties = {% if props %}{{ props | join(' | ') }}{% else %}0{% endif %},
+};
+{% endif %}
 {% endfor %}
 
 /* Characteristic callbacks */
@@ -52,6 +77,48 @@ static ssize_t {{ service.name }}_{{ chrc.name }}_write(struct bt_conn *conn,
 	return len;
 }
 {% endif %}
+{% if chrc.needs_ccc() %}
+static void {{ service.name }}_{{ chrc.name }}_ccc_cfg_changed(const struct bt_gatt_attr *attr,
+						       uint16_t value)
+{
+	ARG_UNUSED(attr);
+
+	if (value == {{ chrc.ccc_flags() }}) {
+		printk("{{ chrc.name }} {{ 'notifications' if chrc.has_notify() else 'indications' }} enabled\n");
+	} else if (value == 0) {
+		printk("{{ chrc.name }} {{ 'notifications' if chrc.has_notify() else 'indications' }} disabled\n");
+	}
+}
+{% endif %}
+{% endfor %}
+
+/* Public API */
+{% for chrc in service.characteristics %}
+{% if chrc.has_notify() %}
+int {{ service.name }}_{{ chrc.name }}_notify(const uint8_t *data, uint16_t len)
+{
+	return bt_gatt_notify_uuid(NULL, {{ chrc.uuid | uuid_macro }}, NULL, data, len);
+}
+{% endif %}
+{% if chrc.has_indicate() %}
+int {{ service.name }}_{{ chrc.name }}_indicate(const uint8_t *data, uint16_t len)
+{
+	static struct bt_gatt_indicate_params params;
+
+	if (len > {{ chrc.size }}) {
+		return -EINVAL;
+	}
+
+	memcpy({{ service.name }}_{{ chrc.name }}_value, data, len);
+
+	params.uuid = {{ chrc.uuid | uuid_macro }};
+	params.attr = NULL;
+	params.data = {{ service.name }}_{{ chrc.name }}_value;
+	params.len = len;
+
+	return bt_gatt_indicate(NULL, &params);
+}
+{% endif %}
 {% endfor %}
 
 /* Service declaration */
@@ -63,6 +130,19 @@ BT_GATT_SERVICE_DEFINE({{ service.name }},
 			       {{ chrc.permissions_macro() }},
 			       {% if 'read' in chrc.properties %}{{ service.name }}_{{ chrc.name }}_read{% else %}NULL{% endif %},
 			       {% if 'write' in chrc.properties or 'write_without_response' in chrc.properties %}{{ service.name }}_{{ chrc.name }}_write{% else %}NULL{% endif %},
-			       {{ service.name }}_{{ chrc.name }}_value){% if not loop.last %},{% endif %}
+			       {{ service.name }}_{{ chrc.name }}_value){% if not loop.last or chrc.descriptors or chrc.needs_ccc() %},{% endif %}
+{% for d in chrc.descriptors %}
+{% if d.type == 'cud' %}
+	BT_GATT_CUD("{{ d.value }}", BT_GATT_PERM_READ){% if not loop.last or chrc.needs_ccc() %},{% endif %}
+{% elif d.type == 'cpf' %}
+	BT_GATT_CPF(&{{ service.name }}_{{ chrc.name }}_cpf){% if not loop.last or chrc.needs_ccc() %},{% endif %}
+{% elif d.type == 'cep' %}
+	BT_GATT_CEP(&{{ service.name }}_{{ chrc.name }}_cep){% if not loop.last or chrc.needs_ccc() %},{% endif %}
+{% endif %}
+{% endfor %}
+{% if chrc.needs_ccc() %}
+	BT_GATT_CCC({{ service.name }}_{{ chrc.name }}_ccc_cfg_changed,
+		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE){% if not loop.last %},{% endif %}
+{% endif %}
 {% endfor %}
 );

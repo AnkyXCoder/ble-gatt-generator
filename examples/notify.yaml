@@ -1,0 +1,37 @@
+profile:
+  name: gatt_gen_notify
+  services:
+    - name: notify_svc
+      uuid: 12345678-1234-5678-1234-56789abcdef0
+      characteristics:
+        - name: button
+          uuid: 12345678-1234-5678-1234-56789abcdef1
+          properties:
+            - read
+            - notify
+          permissions:
+            - read
+          size: 1
+          descriptors:
+            - type: cud
+              value: "Button state"
+            - type: cpf
+              format: 1
+              exponent: 0
+              unit: 0
+              name_space: 1
+              description: 0
+        - name: led
+          uuid: 12345678-1234-5678-1234-56789abcdef2
+          properties:
+            - read
+            - write
+          permissions:
+            - read
+            - write
+          size: 1
+          descriptors:
+            - type: cud
+              value: "LED control"
+            - type: cep
+              reliable_write: true
