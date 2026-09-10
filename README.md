@@ -77,12 +77,19 @@ updates the service files without touching your code.
 
 ### Build and run on `native_sim`
 
+Run from your west workspace (or anywhere with `ZEPHYR_BASE` set):
+
 ```bash
-export ZEPHYR_BASE=/path/to/zephyr
-cmake -B build -S my_app -DBOARD=native_sim
-cmake --build build
-./build/zephyr/zephyr.exe --bt-dev=hci0     # attach a host HCI adapter, or
-./build/zephyr/zephyr.exe                    # boots, reports missing HCI
+west build -b native_sim my_app            # configure + build
+./my_app/build/zephyr/zephyr.exe --bt-dev=hci0   # attach a host HCI adapter, or
+./my_app/build/zephyr/zephyr.exe                  # boots, reports missing HCI
+```
+
+For a real board, just swap the board name:
+
+```bash
+west build -b nrf52840dk/nrf52840 my_app
+west flash
 ```
 
 ### Talk to the device
@@ -133,56 +140,170 @@ permissions request `BT_SECURITY_L3`/`L4` pairing in the test; the plain
 `*_encrypt` permissions use just-works pairing to `BT_SECURITY_L2`, which the
 simulated link supports out of the box.
 
-## Profile reference
+## Writing a profile
+
+A profile file is a single YAML document with one `profile:` root. The
+smallest valid profile needs a name, one service, and one characteristic:
 
 ```yaml
 profile:
-  name: my_profile                # C identifier; used for CONFIG_BT_DEVICE_NAME
+  name: my_profile
   services:
-    - name: battery               # C identifier; prefix for all generated symbols
-      uuid: 180f                  # 16-bit (xxxx) or 128-bit (8-4-4-4-12) UUID
+    - name: battery
+      uuid: 180f
       characteristics:
         - name: level
           uuid: 2a19
-          size: 1                 # value buffer size in bytes (1..512)
-          thread_safe: true       # default true; false skips the k_mutex
+          properties: [read]
+          permissions: [read]
+          size: 1
+```
+
+Generate it:
+
+```bash
+west gatt-gen -i my_profile.yaml -o my_app
+```
+
+### Structure
+
+```
+profile            → device-level info, one per file
+  └─ services[]    → each becomes a BT_GATT_SERVICE_DEFINE + <name>_service.[ch]
+       └─ characteristics[] → each becomes a BT_GATT_CHARACTERISTIC + helpers
+            └─ descriptors[] → CUD / CPF / CEP attribute entries
+```
+
+### Field reference
+
+`profile:`
+
+| Field      | Required | Notes                                                |
+| ---------- | -------- | ---------------------------------------------------- |
+| `name`     | yes      | C identifier; also used for `CONFIG_BT_DEVICE_NAME`. |
+| `services` | yes      | Non-empty list of services.                          |
+
+Each entry in `services:`
+
+| Field             | Required | Notes                                                |
+| ----------------- | -------- | ---------------------------------------------------- |
+| `name`            | yes      | C identifier; prefixes every generated symbol.       |
+| `uuid`            | yes      | 16-bit (`180f`, `0x180F`) or 128-bit (`8-4-4-4-12`). |
+| `characteristics` | yes      | Non-empty list.                                      |
+
+Each entry in `characteristics:`
+
+| Field         | Required | Default | Notes                                                   |
+| ------------- | -------- | ------- | ------------------------------------------------------- |
+| `name`        | yes      | —       | C identifier; used in `get_*`/`set_*`/`notify` helpers. |
+| `uuid`        | yes      | —       | Same formats as the service UUID.                       |
+| `properties`  | yes      | —       | Non-empty list; see table below.                        |
+| `permissions` | yes      | —       | List, may be empty `[]`; see table below.               |
+| `size`        | no       | `1`     | Value buffer size in bytes, 1–512.                      |
+| `thread_safe` | no       | `true`  | `false` omits the `k_mutex` around the value buffer.    |
+| `descriptors` | no       | `[]`    | See the descriptor table below.                         |
+
+### Properties → what gets generated
+
+| Property                      | `BT_GATT_CHRC_*`     | Effect                                                           |
+| ----------------------------- | -------------------- | ---------------------------------------------------------------- |
+| `read`                        | `READ`               | Read callback serving the value buffer; needs a read permission. |
+| `write`                       | `WRITE`              | Write callback with response; needs a write permission.          |
+| `write_without_response`      | `WRITE_WITHOUT_RESP` | Write callback, no response; needs a write permission.           |
+| `notify`                      | `NOTIFY`             | CCC descriptor + `<svc>_<chrc>_notify()` helper.                 |
+| `indicate`                    | `INDICATE`           | CCC descriptor + `<svc>_<chrc>_indicate()` helper.               |
+| `broadcast`                   | `BROADCAST`          | Property bit only (legacy, rarely used).                         |
+| `authenticated_signed_writes` | `AUTH`               | Property bit only; enables signed-write procedure.               |
+| `extended_properties`         | `EXT_PROP`           | Required when a `cep` descriptor is present.                     |
+
+`notify` and `indicate` cannot be combined on one characteristic (v1).
+
+### Permissions → access control
+
+| Permission                       | `BT_GATT_PERM_*`                 | Minimum link security        |
+| -------------------------------- | -------------------------------- | ---------------------------- |
+| `read` / `write`                 | `READ` / `WRITE`                 | none (unencrypted)           |
+| `read_encrypt` / `write_encrypt` | `READ_ENCRYPT` / `WRITE_ENCRYPT` | `BT_SECURITY_L2`             |
+| `read_authen` / `write_authen`   | `READ_AUTHEN` / `WRITE_AUTHEN`   | `BT_SECURITY_L3` (MITM)      |
+| `read_lesc` / `write_lesc`       | `READ_LESC` / `WRITE_LESC`       | `BT_SECURITY_L4` (LESC)      |
+| `prepare_write`                  | `PREPARE_WRITE`                  | enables long/reliable writes |
+
+Any encrypted/authenticated/LESC permission automatically enables
+`CONFIG_BT_SMP` in the generated `prj.conf`, and the BabbleSim self-test pairs
+to the required level (`CONFIG_BT_FIXED_PASSKEY` + `CONFIG_BT_SMP_SC_ONLY`
+when needed).
+
+### Descriptors
+
+| Type  | Meaning                            | Required fields                                                       |
+| ----- | ---------------------------------- | --------------------------------------------------------------------- |
+| `cud` | Characteristic User Description    | `value` (string)                                                      |
+| `cpf` | Characteristic Presentation Format | `format` (+ optional `exponent`, `unit`, `name_space`, `description`) |
+| `cep` | Characteristic Extended Properties | `reliable_write` and/or `writable_aux`                                |
+
+A `cep` descriptor requires the `extended_properties` property on the same
+characteristic. CCC descriptors are **not** declared — they are derived from
+`notify`/`indicate` automatically. One descriptor per type per characteristic.
+
+### Worked example — adding a service step by step
+
+Starting from the minimal profile above, add a second service:
+
+```yaml
+profile:
+  name: my_profile
+  services:
+    - name: battery
+      uuid: 180f
+      characteristics:
+        - name: level
+          uuid: 2a19
           properties: [read, notify]
           permissions: [read]
+          size: 1
           descriptors:
-            - type: cud           # Characteristic User Description
+            - type: cud
               value: "Battery level"
-            - type: cpf           # Characteristic Presentation Format
-              format: 4           # uint8
-              exponent: 0
-              unit: 0x27ad        # percentage
-              name_space: 1
-              description: 0
-        - name: control
+
+    - name: control_svc
+      uuid: 12345678-1234-5678-1234-56789abcdef0
+      characteristics:
+        # A write-only command characteristic.
+        - name: command
           uuid: 12345678-1234-5678-1234-56789abcdef1
+          properties: [write]
+          permissions: [write]
           size: 4
+
+        # An encrypted, readable+writable setting with reliable writes.
+        - name: config
+          uuid: 12345678-1234-5678-1234-56789abcdef2
           properties: [read, write, extended_properties]
           permissions: [read_encrypt, write_encrypt, prepare_write]
+          size: 8
           descriptors:
-            - type: cep           # Characteristic Extended Properties
+            - type: cep
               reliable_write: true
 ```
 
-**Properties** map to `BT_GATT_CHRC_*`: `broadcast`, `read`,
-`write_without_response`, `write`, `notify`, `indicate`,
-`authenticated_signed_writes`, `extended_properties`.
+Regenerate and rebuild:
 
-**Permissions** map to `BT_GATT_PERM_*`: `read`, `write`, `read_encrypt`,
-`write_encrypt`, `read_authen`, `write_authen`, `read_lesc`, `write_lesc`,
-`prepare_write`. Any encrypted/authenticated permission automatically enables
-`CONFIG_BT_SMP` in the generated `prj.conf`.
+```bash
+west gatt-gen -i my_profile.yaml -o my_app   # service files updated, main.c untouched
+west build -b native_sim my_app
+```
 
-Validation rules enforced at load time:
+### Validation rules enforced at load time
 
 * `read` requires a read permission; `write`/`write_without_response` require a
   write permission.
 * `notify` and `indicate` are mutually exclusive on one characteristic (v1).
 * `broadcast` and `authenticated_signed_writes` only set the characteristic
   property bit; they do not change the generated callbacks.
+* A `cep` descriptor requires the `extended_properties` property.
+* CCC descriptors are derived automatically from `notify`/`indicate`; do not
+  list them.
+* Names and UUIDs must be unique within their parent.
 
 ## Examples
 
@@ -196,10 +317,6 @@ Validation rules enforced at load time:
 
 Each `examples/*.yaml` has a matching generated `samples/gatt_gen_*`
 directory (kept in sync by CI).
-* A `cep` descriptor requires the `extended_properties` property.
-* CCC descriptors are derived automatically from `notify`/`indicate`; do not
-  list them.
-* Names and UUIDs must be unique within their parent.
 
 ## Generated C API
 

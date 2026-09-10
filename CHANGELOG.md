@@ -38,6 +38,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `scripts/ci.sh` now builds every directory under `samples/` instead of a
   hardcoded list
+- README: build/run instructions now use `west` commands only, and the
+  profile reference was expanded into a full authoring guide with field,
+  property, permission and descriptor tables plus a step-by-step example
 
 - Renamed the project and package from `zephyr-gatt-gen` / `gatt_gen` to
   `ble-gatt-generator` / `ble_gatt_generator`
