@@ -35,7 +35,7 @@
 /* Notifications the peripheral pushes per characteristic. */
 #define NOTIFICATION_COUNT 5
 /* How long to wait for asynchronous results, in poll iterations. */
-#define WAIT_ITERS 500
+#define WAIT_ITERS         500
 
 DEFINE_FLAG_STATIC(flag_is_connected);
 DEFINE_FLAG_STATIC(flag_discover_done);
@@ -81,8 +81,7 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	UNSET_FLAG(flag_is_connected);
 }
 
-static void security_changed(struct bt_conn *conn, bt_security_t level,
-			     enum bt_security_err err)
+static void security_changed(struct bt_conn *conn, bt_security_t level, enum bt_security_err err)
 {
 	ARG_UNUSED(conn);
 
@@ -125,8 +124,7 @@ static void device_found(const bt_addr_le_t *addr, int8_t rssi, uint8_t type,
 		return;
 	}
 
-	err = bt_conn_le_create(addr, BT_CONN_LE_CREATE_CONN,
-				BT_LE_CONN_PARAM_DEFAULT, &g_conn);
+	err = bt_conn_le_create(addr, BT_CONN_LE_CREATE_CONN, BT_LE_CONN_PARAM_DEFAULT, &g_conn);
 	if (err != 0) {
 		TEST_FAIL("Could not connect to peer: %d", err);
 	}
@@ -194,9 +192,8 @@ static struct bt_gatt_read_params read_params;
 static uint8_t read_buf[512];
 static uint16_t read_len;
 
-static uint8_t read_func(struct bt_conn *conn, uint8_t err,
-			 struct bt_gatt_read_params *params, const void *data,
-			 uint16_t length)
+static uint8_t read_func(struct bt_conn *conn, uint8_t err, struct bt_gatt_read_params *params,
+			 const void *data, uint16_t length)
 {
 	ARG_UNUSED(conn);
 	ARG_UNUSED(params);
@@ -236,8 +233,7 @@ static uint16_t read_chrc(uint16_t handle)
 
 static struct bt_gatt_write_params write_params;
 
-static void write_func(struct bt_conn *conn, uint8_t err,
-		       struct bt_gatt_write_params *params)
+static void write_func(struct bt_conn *conn, uint8_t err, struct bt_gatt_write_params *params)
 {
 	ARG_UNUSED(conn);
 	ARG_UNUSED(params);
@@ -298,6 +294,9 @@ static void test_central(void)
 
 	WAIT_FOR_FLAG(flag_is_connected);
 
+	/* Single ATT reads/writes are limited by the negotiated MTU. */
+	const uint16_t att_mtu = bt_gatt_get_mtu(g_conn);
+
 	err = bt_conn_set_security(g_conn, BT_SECURITY_L2);
 	if (err) {
 		TEST_FAIL("Starting security procedure failed (%d)", err);
@@ -312,30 +311,34 @@ static void test_central(void)
 	}
 	printk("secure_svc/secret: value handle %u\n", secure_svc_secret_handle);
 
-	/* Verify readable characteristics return their full value size. */
+	/* Verify readable characteristics return the expected number of bytes.
+	 * A single ATT read is capped at MTU-1, so larger values come back
+	 * truncated at the first read.
+	 */
 	{
 		uint16_t len = read_chrc(secure_svc_secret_handle);
+		uint16_t expected = MIN(SECURE_SVC_SECRET_SIZE, att_mtu - 1);
 
-		if (len != SECURE_SVC_SECRET_SIZE) {
-			TEST_FAIL("secure_svc/secret read len %u, expected %u",
-				  len, SECURE_SVC_SECRET_SIZE);
+		if (len != expected) {
+			TEST_FAIL("secure_svc/secret read len %u, expected %u", len, expected);
 		}
 	}
 
 	/* Exercise writable characteristics; verify by read-back when possible. */
 	{
 		uint8_t pattern[SECURE_SVC_SECRET_SIZE];
+		/* An ATT write without long-write support is capped at MTU-3. */
+		uint16_t wlen = MIN(sizeof(pattern), att_mtu - 3);
 
 		for (size_t i = 0; i < sizeof(pattern); i++) {
 			pattern[i] = (uint8_t)(0xa5 ^ i);
 		}
 
-		write_chrc(secure_svc_secret_handle, pattern, sizeof(pattern));
+		write_chrc(secure_svc_secret_handle, pattern, wlen);
 		{
 			uint16_t len = read_chrc(secure_svc_secret_handle);
 
-			if (len != sizeof(pattern) ||
-			    memcmp(read_buf, pattern, sizeof(pattern)) != 0) {
+			if (len < wlen || memcmp(read_buf, pattern, wlen) != 0) {
 				TEST_FAIL("secure_svc/secret read-back mismatch");
 			}
 		}
@@ -347,7 +350,6 @@ static void test_central(void)
 
 	/* Tell the peripheral to start pushing values. */
 	bk_sync_send();
-
 
 	/* Verification complete; let the peripheral pass. */
 	bk_sync_send();

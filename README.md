@@ -181,6 +181,21 @@ Validation rules enforced at load time:
 * `read` requires a read permission; `write`/`write_without_response` require a
   write permission.
 * `notify` and `indicate` are mutually exclusive on one characteristic (v1).
+* `broadcast` and `authenticated_signed_writes` only set the characteristic
+  property bit; they do not change the generated callbacks.
+
+## Examples
+
+| Profile                       | Demonstrates                                                       |
+| ----------------------------- | ------------------------------------------------------------------ |
+| `examples/minimal.yaml`       | One service, read-only and read/write characteristics.             |
+| `examples/notify.yaml`        | Notify, CCC, CUD/CPF/CEP descriptors, prepare-write permission.    |
+| `examples/secure.yaml`        | Encrypted read/write (`CONFIG_BT_SMP` auto-enabled).               |
+| `examples/multi_service.yaml` | Two services, notify + indicate, write-only and notify-only chars. |
+| `examples/kitchen_sink.yaml`  | Every property, permission level and descriptor; 3 services.       |
+
+Each `examples/*.yaml` has a matching generated `samples/gatt_gen_*`
+directory (kept in sync by CI).
 * A `cep` descriptor requires the `extended_properties` property.
 * CCC descriptors are derived automatically from `notify`/`indicate`; do not
   list them.

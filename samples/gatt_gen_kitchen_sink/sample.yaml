@@ -1,0 +1,10 @@
+sample:
+  name: GATT Generated gatt_gen_full
+
+tests:
+  sample.bluetooth.ble_gatt_generator_gatt_gen_full:
+    build_only: true
+    platform_allow:
+      - native_sim
+      - nrf52_bsim/native
+    tags: bluetooth

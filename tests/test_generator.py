@@ -218,3 +218,49 @@ def test_bsim_no_ccc_profile_has_no_subscription(tmp_path):
     central = (tmp_path / "bsim/src/central.c").read_text()
     assert "bt_gatt_subscribe" not in central
     assert "_subscribed" not in central
+
+
+def test_multi_service_example(tmp_path):
+    profile = load_profile(str(EXAMPLES / "multi_service.yaml"))
+    written = generate(profile, tmp_path)
+    names = {p.relative_to(tmp_path).as_posix() for p in written}
+
+    assert "src/sensor_svc_service.c" in names
+    assert "src/device_svc_service.c" in names
+    cmake = (tmp_path / "CMakeLists.txt").read_text()
+    assert "sensor_svc_service.c" in cmake
+    assert "device_svc_service.c" in cmake
+
+    central = (tmp_path / "bsim/src/central.c").read_text()
+    assert "sensor_svc_temperature_handle" in central
+    assert "device_svc_reboot_handle" in central
+    # indicate characteristic uses the indicate helper on the peripheral
+    peripheral = (tmp_path / "bsim/src/peripheral.c").read_text()
+    assert "sensor_svc_humidity_indicate(payload" in peripheral
+    assert "device_svc_event_flag_notify(payload" in peripheral
+
+
+def test_kitchen_sink_example_security_levels(tmp_path):
+    profile = load_profile(str(EXAMPLES / "kitchen_sink.yaml"))
+    assert len(profile.services) == 3
+    assert profile.required_security() == "BT_SECURITY_L4"
+    assert profile.needs_mitm()
+    assert profile.needs_sc_only()
+
+    generate(profile, tmp_path)
+    conf = (tmp_path / "bsim/prj.conf").read_text()
+    assert "CONFIG_BT_SMP=y" in conf
+    assert "CONFIG_BT_FIXED_PASSKEY=y" in conf
+    assert "CONFIG_BT_SMP_SC_ONLY=y" in conf
+
+    central = (tmp_path / "bsim/src/central.c").read_text()
+    peripheral = (tmp_path / "bsim/src/peripheral.c").read_text()
+    assert "bt_passkey_set(TEST_PASSKEY)" in central
+    assert "bt_conn_auth_cb_register" in central
+    assert "bt_passkey_set(TEST_PASSKEY)" in peripheral
+    assert "bt_gatt_get_mtu" in central
+
+    # every characteristic is exercised by the generated central
+    for svc in profile.services:
+        for chrc in svc.characteristics:
+            assert f"{svc.name}_{chrc.name}_handle" in central

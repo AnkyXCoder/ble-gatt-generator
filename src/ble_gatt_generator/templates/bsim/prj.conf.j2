@@ -11,5 +11,13 @@ CONFIG_BT_DEVICE_NAME="GATT Gen {{ profile.name }}"
 # Some characteristics require encryption/authentication.
 CONFIG_BT_SMP=y
 {% endif %}
+{% if profile.needs_mitm() %}
+# Authenticated/LESC permissions need MITM pairing; a fixed passkey makes
+# the pairing deterministic inside the simulation.
+CONFIG_BT_FIXED_PASSKEY=y
+{% endif %}
+{% if profile.needs_sc_only() %}
+CONFIG_BT_SMP_SC_ONLY=y
+{% endif %}
 CONFIG_ASSERT=y
 CONFIG_LOG=y

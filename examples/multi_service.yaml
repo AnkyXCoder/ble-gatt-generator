@@ -1,0 +1,54 @@
+# Two services with multiple characteristics: shows how one profile drives
+# several BT_GATT_SERVICE_DEFINE instances and how clients/tests enumerate them.
+profile:
+  name: gatt_gen_multi
+  services:
+    - name: sensor_svc
+      uuid: 12345678-1234-5678-1234-56789abcdef0
+      characteristics:
+        - name: temperature
+          uuid: 12345678-1234-5678-1234-56789abcdef1
+          properties: [read, notify]
+          permissions: [read]
+          size: 4
+          descriptors:
+            - type: cud
+              value: "Temperature, 0.01 degC"
+            - type: cpf
+              format: 14         # sint32
+              exponent: -2
+              unit: 0x272f       # degree Celsius
+              name_space: 1
+              description: 0
+        - name: humidity
+          uuid: 12345678-1234-5678-1234-56789abcdef2
+          properties: [read, indicate]
+          permissions: [read]
+          size: 2
+        - name: sampling_rate
+          uuid: 12345678-1234-5678-1234-56789abcdef3
+          properties: [read, write]
+          permissions: [read, write]
+          size: 2
+
+    - name: device_svc
+      uuid: 12345678-1234-5678-1234-56789abcde10
+      characteristics:
+        - name: device_name
+          uuid: 12345678-1234-5678-1234-56789abcde11
+          properties: [read]
+          permissions: [read]
+          size: 20
+          descriptors:
+            - type: cud
+              value: "Device name"
+        - name: reboot
+          uuid: 12345678-1234-5678-1234-56789abcde12
+          properties: [write]
+          permissions: [write]
+          size: 1
+        - name: event_flag
+          uuid: 12345678-1234-5678-1234-56789abcde13
+          properties: [notify]
+          permissions: []
+          size: 4

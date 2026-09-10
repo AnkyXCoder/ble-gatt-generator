@@ -1,0 +1,60 @@
+/*
+ * Copyright (c) 2026 Ankit Modi
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/** @file
+ *  @brief Sample application for the generated gatt_gen_multi GATT profile.
+ *
+ *  Generated once by ble-gatt-generator. This file is yours to edit; it is
+ *  not overwritten on regeneration unless --force is given.
+ */
+
+#include <zephyr/bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/conn.h>
+#include <zephyr/bluetooth/gatt.h>
+#include <zephyr/bluetooth/uuid.h>
+#include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
+
+#include "sensor_svc_service.h"
+#include "device_svc_service.h"
+
+/* Advertise the first service UUID so scanners can filter on it. */
+static const struct bt_data ad[] = {
+	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
+	BT_DATA_BYTES(BT_DATA_UUID128_ALL,
+		      BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0)),
+};
+
+static const struct bt_data sd[] = {
+	BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1),
+};
+
+int main(void)
+{
+	int err;
+
+	err = bt_enable(NULL);
+	if (err) {
+		printk("Bluetooth init failed (err %d)\n", err);
+		return 0;
+	}
+
+	printk("Bluetooth initialized\n");
+
+	err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
+	if (err) {
+		printk("Advertising failed to start (err %d)\n", err);
+		return 0;
+	}
+
+	printk("Advertising successfully started\n");
+
+	while (1) {
+		k_sleep(K_SECONDS(1));
+	}
+
+	return 0;
+}

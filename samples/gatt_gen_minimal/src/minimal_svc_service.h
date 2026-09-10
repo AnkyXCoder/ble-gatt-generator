@@ -27,12 +27,15 @@ extern "C" {
  */
 
 /* Service and characteristic UUIDs. */
-#define MINIMAL_SVC_UUID BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0))
-#define MINIMAL_SVC_READ_ONLY_UUID BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef1))
-#define MINIMAL_SVC_READ_WRITE_UUID BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef2))
+#define MINIMAL_SVC_UUID                                                                           \
+	BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0))
+#define MINIMAL_SVC_READ_ONLY_UUID                                                                 \
+	BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef1))
+#define MINIMAL_SVC_READ_WRITE_UUID                                                                \
+	BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef2))
 
 /* Characteristic value sizes in bytes. */
-#define MINIMAL_SVC_READ_ONLY_SIZE 1
+#define MINIMAL_SVC_READ_ONLY_SIZE  1
 #define MINIMAL_SVC_READ_WRITE_SIZE 20
 
 /** @brief Set the read_only characteristic value.

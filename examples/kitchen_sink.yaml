@@ -1,0 +1,175 @@
+# Coverage profile: three services exercising every supported property and
+# permission combination, plus all descriptor types. The generated BabbleSim
+# self-test pairs with a fixed passkey to reach the L4 (LESC) level this
+# profile requires.
+profile:
+  name: gatt_gen_full
+  services:
+    # Every property combination.
+    - name: props_svc
+      uuid: 12345678-1234-5678-1234-56789abcdef0
+      characteristics:
+        - name: read_only
+          uuid: 12345678-1234-5678-1234-56789abcde01
+          properties: [read]
+          permissions: [read]
+          size: 8
+        - name: write_only
+          uuid: 12345678-1234-5678-1234-56789abcde02
+          properties: [write]
+          permissions: [write]
+          size: 8
+        - name: wwr_only
+          uuid: 12345678-1234-5678-1234-56789abcde03
+          properties: [write_without_response]
+          permissions: [write]
+          size: 8
+        - name: read_write
+          uuid: 12345678-1234-5678-1234-56789abcde04
+          properties: [read, write]
+          permissions: [read, write]
+          size: 8
+        - name: notify_only
+          uuid: 12345678-1234-5678-1234-56789abcde05
+          properties: [notify]
+          permissions: []
+          size: 4
+        - name: indicate_only
+          uuid: 12345678-1234-5678-1234-56789abcde06
+          properties: [indicate]
+          permissions: []
+          size: 4
+        - name: read_notify
+          uuid: 12345678-1234-5678-1234-56789abcde07
+          properties: [read, notify]
+          permissions: [read]
+          size: 8
+        - name: read_indicate
+          uuid: 12345678-1234-5678-1234-56789abcde08
+          properties: [read, indicate]
+          permissions: [read]
+          size: 8
+        - name: rw_notify
+          uuid: 12345678-1234-5678-1234-56789abcde09
+          properties: [read, write, notify]
+          permissions: [read, write]
+          size: 8
+        - name: rw_indicate
+          uuid: 12345678-1234-5678-1234-56789abcde0a
+          properties: [read, write, indicate]
+          permissions: [read, write]
+          size: 8
+        - name: wwr_notify
+          uuid: 12345678-1234-5678-1234-56789abcde0b
+          properties: [write_without_response, notify]
+          permissions: [write]
+          size: 8
+        - name: broadcast_chrc
+          uuid: 12345678-1234-5678-1234-56789abcde0c
+          properties: [broadcast, read]
+          permissions: [read]
+          size: 4
+        - name: signed_rw
+          uuid: 12345678-1234-5678-1234-56789abcde0d
+          properties: [authenticated_signed_writes, read, write]
+          permissions: [read, write]
+          size: 8
+        - name: ext_props
+          uuid: 12345678-1234-5678-1234-56789abcde0e
+          properties: [read, write, extended_properties]
+          permissions: [read, write, prepare_write]
+          size: 16
+          descriptors:
+            - type: cep
+              reliable_write: true
+        - name: big_value
+          uuid: 12345678-1234-5678-1234-56789abcde0f
+          properties: [read, write]
+          permissions: [read, write]
+          size: 64
+
+    # Every permission level: plain, encrypted, authenticated and LESC.
+    - name: sec_svc
+      uuid: 12345678-1234-5678-1234-56789abcde20
+      characteristics:
+        - name: enc_read
+          uuid: 12345678-1234-5678-1234-56789abcde21
+          properties: [read]
+          permissions: [read_encrypt]
+          size: 8
+        - name: enc_write
+          uuid: 12345678-1234-5678-1234-56789abcde22
+          properties: [write]
+          permissions: [write_encrypt]
+          size: 8
+        - name: enc_rw
+          uuid: 12345678-1234-5678-1234-56789abcde23
+          properties: [read, write]
+          permissions: [read_encrypt, write_encrypt]
+          size: 8
+        - name: auth_read
+          uuid: 12345678-1234-5678-1234-56789abcde24
+          properties: [read]
+          permissions: [read_authen]
+          size: 8
+        - name: auth_rw
+          uuid: 12345678-1234-5678-1234-56789abcde25
+          properties: [read, write]
+          permissions: [read_authen, write_authen]
+          size: 8
+        - name: lesc_rw
+          uuid: 12345678-1234-5678-1234-56789abcde26
+          properties: [read, write]
+          permissions: [read_lesc, write_lesc]
+          size: 8
+        - name: enc_notify
+          uuid: 12345678-1234-5678-1234-56789abcde27
+          properties: [read, notify]
+          permissions: [read_encrypt]
+          size: 8
+        - name: auth_indicate
+          uuid: 12345678-1234-5678-1234-56789abcde28
+          properties: [read, indicate]
+          permissions: [read_authen]
+          size: 8
+
+    # Descriptor showcase.
+    - name: desc_svc
+      uuid: 12345678-1234-5678-1234-56789abcde40
+      characteristics:
+        - name: described
+          uuid: 12345678-1234-5678-1234-56789abcde41
+          properties: [read, notify]
+          permissions: [read]
+          size: 4
+          descriptors:
+            - type: cud
+              value: "Fully described value"
+            - type: cpf
+              format: 4          # uint8
+              exponent: 0
+              unit: 0x27ad       # percentage
+              name_space: 1
+              description: 0
+        - name: full_meta
+          uuid: 12345678-1234-5678-1234-56789abcde42
+          properties: [read, write, extended_properties]
+          permissions: [read, write, prepare_write]
+          size: 16
+          descriptors:
+            - type: cud
+              value: "All descriptors present"
+            - type: cpf
+              format: 8          # uint32
+              exponent: 0
+              unit: 0
+              name_space: 1
+              description: 0
+            - type: cep
+              reliable_write: true
+              writable_aux: false
+        - name: plain
+          uuid: 12345678-1234-5678-1234-56789abcde43
+          properties: [read]
+          permissions: [read]
+          size: 4

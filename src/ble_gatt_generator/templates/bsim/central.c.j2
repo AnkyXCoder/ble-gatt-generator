@@ -38,6 +38,10 @@
 #define NOTIFICATION_COUNT 5
 /* How long to wait for asynchronous results, in poll iterations. */
 #define WAIT_ITERS 500
+{% if profile.needs_mitm() %}
+/* Shared with the peripheral so passkey entry always matches. */
+#define TEST_PASSKEY 123456
+{% endif %}
 
 DEFINE_FLAG_STATIC(flag_is_connected);
 DEFINE_FLAG_STATIC(flag_discover_done);
@@ -106,6 +110,59 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
 		SET_FLAG(flag_is_encrypted);
 	}
 }
+{% endif %}
+{% if profile.needs_mitm() %}
+/* Pairing callbacks that answer every method deterministically. The
+ * peripheral side uses the same fixed passkey, so passkey entry always
+ * matches and numeric comparison is simply confirmed.
+ */
+static void auth_passkey_display(struct bt_conn *conn, unsigned int passkey)
+{
+	ARG_UNUSED(conn);
+	ARG_UNUSED(passkey);
+}
+
+static void auth_passkey_entry(struct bt_conn *conn)
+{
+	int err = bt_conn_auth_passkey_entry(conn, TEST_PASSKEY);
+
+	if (err) {
+		TEST_FAIL("Passkey entry failed (err %d)", err);
+	}
+}
+
+static void auth_passkey_confirm(struct bt_conn *conn, unsigned int passkey)
+{
+	ARG_UNUSED(passkey);
+
+	int err = bt_conn_auth_passkey_confirm(conn);
+
+	if (err) {
+		TEST_FAIL("Passkey confirm failed (err %d)", err);
+	}
+}
+
+static void auth_pairing_confirm(struct bt_conn *conn)
+{
+	int err = bt_conn_auth_pairing_confirm(conn);
+
+	if (err) {
+		TEST_FAIL("Pairing confirm failed (err %d)", err);
+	}
+}
+
+static void auth_cancel(struct bt_conn *conn)
+{
+	ARG_UNUSED(conn);
+}
+
+static struct bt_conn_auth_cb auth_callbacks = {
+	.passkey_display = auth_passkey_display,
+	.passkey_entry = auth_passkey_entry,
+	.passkey_confirm = auth_passkey_confirm,
+	.pairing_confirm = auth_pairing_confirm,
+	.cancel = auth_cancel,
+};
 {% endif %}
 
 BT_CONN_CB_DEFINE(conn_callbacks) = {
@@ -350,6 +407,19 @@ static void test_central(void)
 		TEST_FAIL("Backchannel init failed (err %d)", err);
 	}
 
+{% if profile.needs_mitm() %}
+	/* Match the fixed passkey used on the peripheral side. */
+	err = bt_passkey_set(TEST_PASSKEY);
+	if (err) {
+		TEST_FAIL("bt_passkey_set failed (err %d)", err);
+	}
+
+	err = bt_conn_auth_cb_register(&auth_callbacks);
+	if (err) {
+		TEST_FAIL("Auth callback register failed (err %d)", err);
+	}
+
+{% endif %}
 	err = bt_enable(NULL);
 	if (err != 0) {
 		TEST_FAIL("Bluetooth init failed (err %d)", err);
@@ -363,6 +433,9 @@ static void test_central(void)
 	printk("Scanning successfully started\n");
 
 	WAIT_FOR_FLAG(flag_is_connected);
+
+	/* Single ATT reads/writes are limited by the negotiated MTU. */
+	const uint16_t att_mtu = bt_gatt_get_mtu(g_conn);
 
 {% if profile.needs_smp() %}
 	err = bt_conn_set_security(g_conn, {{ profile.required_security() }});
@@ -385,15 +458,20 @@ static void test_central(void)
 {% endfor %}
 {% endfor %}
 
-	/* Verify readable characteristics return their full value size. */
+	/* Verify readable characteristics return the expected number of bytes.
+	 * A single ATT read is capped at MTU-1, so larger values come back
+	 * truncated at the first read.
+	 */
 {% for svc in profile.services %}
 {% for chrc in svc.characteristics if chrc.has_read() %}
 	{
 		uint16_t len = read_chrc({{ svc.name }}_{{ chrc.name }}_handle);
+		uint16_t expected = MIN({{ svc.name | upper }}_{{ chrc.name | upper }}_SIZE,
+					att_mtu - 1);
 
-		if (len != {{ svc.name | upper }}_{{ chrc.name | upper }}_SIZE) {
+		if (len != expected) {
 			TEST_FAIL("{{ svc.name }}/{{ chrc.name }} read len %u, expected %u",
-				  len, {{ svc.name | upper }}_{{ chrc.name | upper }}_SIZE);
+				  len, expected);
 		}
 	}
 {% endfor %}
@@ -404,16 +482,18 @@ static void test_central(void)
 {% for chrc in svc.characteristics if chrc.has_write() %}
 	{
 		uint8_t pattern[{{ svc.name | upper }}_{{ chrc.name | upper }}_SIZE];
+		/* An ATT write without long-write support is capped at MTU-3. */
+		uint16_t wlen = MIN(sizeof(pattern), att_mtu - 3);
 
 		for (size_t i = 0; i < sizeof(pattern); i++) {
 			pattern[i] = (uint8_t)(0xa5 ^ i);
 		}
 
 {% if 'write' in chrc.properties %}
-		write_chrc({{ svc.name }}_{{ chrc.name }}_handle, pattern, sizeof(pattern));
+		write_chrc({{ svc.name }}_{{ chrc.name }}_handle, pattern, wlen);
 {% else %}
 		err = bt_gatt_write_without_response(g_conn, {{ svc.name }}_{{ chrc.name }}_handle,
-						     pattern, sizeof(pattern), false);
+						     pattern, wlen, false);
 		if (err < 0) {
 			TEST_FAIL("{{ svc.name }}/{{ chrc.name }} write failed (err %d)", err);
 		}
@@ -424,8 +504,7 @@ static void test_central(void)
 		{
 			uint16_t len = read_chrc({{ svc.name }}_{{ chrc.name }}_handle);
 
-			if (len != sizeof(pattern) ||
-			    memcmp(read_buf, pattern, sizeof(pattern)) != 0) {
+			if (len < wlen || memcmp(read_buf, pattern, wlen) != 0) {
 				TEST_FAIL("{{ svc.name }}/{{ chrc.name }} read-back mismatch");
 			}
 		}

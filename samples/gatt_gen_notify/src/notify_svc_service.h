@@ -27,13 +27,16 @@ extern "C" {
  */
 
 /* Service and characteristic UUIDs. */
-#define NOTIFY_SVC_UUID BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0))
-#define NOTIFY_SVC_BUTTON_UUID BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef1))
-#define NOTIFY_SVC_LED_UUID BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef2))
+#define NOTIFY_SVC_UUID                                                                            \
+	BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0))
+#define NOTIFY_SVC_BUTTON_UUID                                                                     \
+	BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef1))
+#define NOTIFY_SVC_LED_UUID                                                                        \
+	BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef2))
 
 /* Characteristic value sizes in bytes. */
 #define NOTIFY_SVC_BUTTON_SIZE 1
-#define NOTIFY_SVC_LED_SIZE 1
+#define NOTIFY_SVC_LED_SIZE    1
 
 /** @brief Set the button characteristic value.
  *

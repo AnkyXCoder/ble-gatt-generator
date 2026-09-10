@@ -21,10 +21,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `scripts/test_bsim.sh` runs the self-test for every sample; a
     `bsim-self-tests` CI job fetches/builds BabbleSim and runs it
   - Profiles with encrypted/authenticated permissions pair to the required
-    `BT_SECURITY_L2`–`L4` level before exercising the attributes
-  - `Profile.required_security()` and `Profile.any_ccc()` schema helpers
+    `BT_SECURITY_L2`–`L4` level before exercising the attributes; L3/L4 use
+    `CONFIG_BT_FIXED_PASSKEY` pairing inside the simulation
+    (`CONFIG_BT_SMP_SC_ONLY` for LESC)
+  - `Profile.required_security()`, `Profile.needs_mitm()`,
+    `Profile.needs_sc_only()` and `Profile.any_ccc()` schema helpers
+  - `examples/multi_service.yaml` (two services, notify + indicate) and
+    `examples/kitchen_sink.yaml` (three services covering every property,
+    permission level and descriptor, including broadcast,
+    authenticated-signed-writes, extended properties and a 64-byte value)
+- Generated central verification is ATT-MTU aware: reads expect
+  `min(size, mtu-1)` bytes and writes are capped at `mtu-3` with partial
+  read-back comparison
 
 ### Changed
+
+- `scripts/ci.sh` now builds every directory under `samples/` instead of a
+  hardcoded list
 
 - Renamed the project and package from `zephyr-gatt-gen` / `gatt_gen` to
   `ble-gatt-generator` / `ble_gatt_generator`

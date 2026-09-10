@@ -37,7 +37,6 @@ static K_MUTEX_DEFINE(minimal_svc_read_write_lock);
 /* Static descriptor payloads                                                */
 /* ------------------------------------------------------------------------- */
 
-
 /* ------------------------------------------------------------------------- */
 /* Thread-safe accessors                                                     */
 /* ------------------------------------------------------------------------- */
@@ -98,8 +97,8 @@ int minimal_svc_read_write_get(uint8_t *data, uint16_t len)
 /* GATT attribute callbacks                                                  */
 /* ------------------------------------------------------------------------- */
 
-static ssize_t minimal_svc_read_only_read(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
-			       uint16_t len, uint16_t offset)
+static ssize_t minimal_svc_read_only_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+					  void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
 
@@ -111,8 +110,8 @@ static ssize_t minimal_svc_read_only_read(struct bt_conn *conn, const struct bt_
 	return ret;
 }
 
-static ssize_t minimal_svc_read_write_read(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
-			       uint16_t len, uint16_t offset)
+static ssize_t minimal_svc_read_write_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+					   void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
 
@@ -125,7 +124,8 @@ static ssize_t minimal_svc_read_write_read(struct bt_conn *conn, const struct bt
 }
 
 static ssize_t minimal_svc_read_write_write(struct bt_conn *conn, const struct bt_gatt_attr *attr,
-				const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
+					    const void *buf, uint16_t len, uint16_t offset,
+					    uint8_t flags)
 {
 	ARG_UNUSED(conn);
 	ARG_UNUSED(attr);
@@ -143,7 +143,8 @@ static ssize_t minimal_svc_read_write_write(struct bt_conn *conn, const struct b
 	memcpy(minimal_svc_read_write_value + offset, buf, len);
 	k_mutex_unlock(&minimal_svc_read_write_lock);
 
-	minimal_svc_read_write_on_write(minimal_svc_read_write_value, sizeof(minimal_svc_read_write_value));
+	minimal_svc_read_write_on_write(minimal_svc_read_write_value,
+					sizeof(minimal_svc_read_write_value));
 
 	return len;
 }

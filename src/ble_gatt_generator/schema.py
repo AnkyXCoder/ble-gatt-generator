@@ -265,6 +265,14 @@ class Profile(BaseModel):
             return "BT_SECURITY_L3"
         return "BT_SECURITY_L2"
 
+    def needs_mitm(self) -> bool:
+        """Return True if any characteristic needs authenticated pairing."""
+        return self.required_security() in ("BT_SECURITY_L3", "BT_SECURITY_L4")
+
+    def needs_sc_only(self) -> bool:
+        """Return True if any characteristic needs LE Secure Connections."""
+        return self.required_security() == "BT_SECURITY_L4"
+
     def any_ccc(self) -> bool:
         """Return True if any characteristic supports notify or indicate."""
         return any(

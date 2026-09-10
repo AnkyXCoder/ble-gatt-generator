@@ -34,6 +34,10 @@
 
 /* Notifications pushed per characteristic once the central subscribes. */
 #define NOTIFICATION_COUNT 5
+{% if profile.needs_mitm() %}
+/* Fixed passkey shared with the central so pairing always succeeds. */
+#define TEST_PASSKEY 123456
+{% endif %}
 
 DEFINE_FLAG_STATIC(flag_is_connected);
 static struct bt_conn *g_conn;
@@ -77,6 +81,59 @@ BT_CONN_CB_DEFINE(conn_callbacks) = {
 	.disconnected = disconnected,
 };
 
+{% if profile.needs_mitm() %}
+/* Pairing callbacks mirroring the central side: every pairing method is
+ * answered deterministically so the link reaches the required level.
+ */
+static void auth_passkey_display(struct bt_conn *conn, unsigned int passkey)
+{
+	ARG_UNUSED(conn);
+	ARG_UNUSED(passkey);
+}
+
+static void auth_passkey_entry(struct bt_conn *conn)
+{
+	int err = bt_conn_auth_passkey_entry(conn, TEST_PASSKEY);
+
+	if (err) {
+		TEST_FAIL("Passkey entry failed (err %d)", err);
+	}
+}
+
+static void auth_passkey_confirm(struct bt_conn *conn, unsigned int passkey)
+{
+	ARG_UNUSED(passkey);
+
+	int err = bt_conn_auth_passkey_confirm(conn);
+
+	if (err) {
+		TEST_FAIL("Passkey confirm failed (err %d)", err);
+	}
+}
+
+static void auth_pairing_confirm(struct bt_conn *conn)
+{
+	int err = bt_conn_auth_pairing_confirm(conn);
+
+	if (err) {
+		TEST_FAIL("Pairing confirm failed (err %d)", err);
+	}
+}
+
+static void auth_cancel(struct bt_conn *conn)
+{
+	ARG_UNUSED(conn);
+}
+
+static struct bt_conn_auth_cb auth_callbacks = {
+	.passkey_display = auth_passkey_display,
+	.passkey_entry = auth_passkey_entry,
+	.passkey_confirm = auth_passkey_confirm,
+	.pairing_confirm = auth_pairing_confirm,
+	.cancel = auth_cancel,
+};
+{% endif %}
+
 static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
 	BT_DATA_BYTES({{ profile.services[0].uuid | ad_uuid_type }},
@@ -92,6 +149,18 @@ static void test_peripheral(void)
 		TEST_FAIL("Backchannel init failed (err %d)", err);
 	}
 
+{% if profile.needs_mitm() %}
+	err = bt_passkey_set(TEST_PASSKEY);
+	if (err) {
+		TEST_FAIL("bt_passkey_set failed (err %d)", err);
+	}
+
+	err = bt_conn_auth_cb_register(&auth_callbacks);
+	if (err) {
+		TEST_FAIL("Auth callback register failed (err %d)", err);
+	}
+
+{% endif %}
 	err = bt_enable(NULL);
 	if (err != 0) {
 		TEST_FAIL("Bluetooth init failed (err %d)", err);

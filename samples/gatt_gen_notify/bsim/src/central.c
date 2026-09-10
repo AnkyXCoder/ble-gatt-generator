@@ -35,7 +35,7 @@
 /* Notifications the peripheral pushes per characteristic. */
 #define NOTIFICATION_COUNT 5
 /* How long to wait for asynchronous results, in poll iterations. */
-#define WAIT_ITERS 500
+#define WAIT_ITERS         500
 
 DEFINE_FLAG_STATIC(flag_is_connected);
 DEFINE_FLAG_STATIC(flag_discover_done);
@@ -81,7 +81,6 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	UNSET_FLAG(flag_is_connected);
 }
 
-
 BT_CONN_CB_DEFINE(conn_callbacks) = {
 	.connected = connected,
 	.disconnected = disconnected,
@@ -111,8 +110,7 @@ static void device_found(const bt_addr_le_t *addr, int8_t rssi, uint8_t type,
 		return;
 	}
 
-	err = bt_conn_le_create(addr, BT_CONN_LE_CREATE_CONN,
-				BT_LE_CONN_PARAM_DEFAULT, &g_conn);
+	err = bt_conn_le_create(addr, BT_CONN_LE_CREATE_CONN, BT_LE_CONN_PARAM_DEFAULT, &g_conn);
 	if (err != 0) {
 		TEST_FAIL("Could not connect to peer: %d", err);
 	}
@@ -180,9 +178,8 @@ static struct bt_gatt_read_params read_params;
 static uint8_t read_buf[512];
 static uint16_t read_len;
 
-static uint8_t read_func(struct bt_conn *conn, uint8_t err,
-			 struct bt_gatt_read_params *params, const void *data,
-			 uint16_t length)
+static uint8_t read_func(struct bt_conn *conn, uint8_t err, struct bt_gatt_read_params *params,
+			 const void *data, uint16_t length)
 {
 	ARG_UNUSED(conn);
 	ARG_UNUSED(params);
@@ -222,8 +219,7 @@ static uint16_t read_chrc(uint16_t handle)
 
 static struct bt_gatt_write_params write_params;
 
-static void write_func(struct bt_conn *conn, uint8_t err,
-		       struct bt_gatt_write_params *params)
+static void write_func(struct bt_conn *conn, uint8_t err, struct bt_gatt_write_params *params)
 {
 	ARG_UNUSED(conn);
 	ARG_UNUSED(params);
@@ -260,29 +256,28 @@ static void write_chrc(uint16_t handle, const uint8_t *data, uint16_t len)
 static volatile size_t notify_svc_button_received;
 
 static uint8_t notify_svc_button_notify_cb(struct bt_conn *conn,
-				    struct bt_gatt_subscribe_params *params,
-				    const void *data, uint16_t length)
+					   struct bt_gatt_subscribe_params *params,
+					   const void *data, uint16_t length)
 {
 	ARG_UNUSED(conn);
 	ARG_UNUSED(params);
 	ARG_UNUSED(data);
 
 	notify_svc_button_received++;
-	printk("notify_svc/button: received value #%u (len %u)\n",
-	       notify_svc_button_received, length);
+	printk("notify_svc/button: received value #%u (len %u)\n", notify_svc_button_received,
+	       length);
 
 	return BT_GATT_ITER_CONTINUE;
 }
 
 static void notify_svc_button_subscribed_cb(struct bt_conn *conn, uint8_t err,
-				     struct bt_gatt_subscribe_params *params)
+					    struct bt_gatt_subscribe_params *params)
 {
 	ARG_UNUSED(conn);
 	ARG_UNUSED(params);
 
 	if (err) {
-		TEST_FAIL("notify_svc/button subscribe failed (err 0x%02x)",
-			  err);
+		TEST_FAIL("notify_svc/button subscribe failed (err 0x%02x)", err);
 	}
 
 	SET_FLAG(notify_svc_button_subscribed);
@@ -325,6 +320,9 @@ static void test_central(void)
 
 	WAIT_FOR_FLAG(flag_is_connected);
 
+	/* Single ATT reads/writes are limited by the negotiated MTU. */
+	const uint16_t att_mtu = bt_gatt_get_mtu(g_conn);
+
 	/* Discover every generated characteristic by UUID. */
 	uint16_t notify_svc_button_handle = discover_chrc(NOTIFY_SVC_BUTTON_UUID);
 	if (notify_svc_button_handle == 0) {
@@ -337,38 +335,42 @@ static void test_central(void)
 	}
 	printk("notify_svc/led: value handle %u\n", notify_svc_led_handle);
 
-	/* Verify readable characteristics return their full value size. */
+	/* Verify readable characteristics return the expected number of bytes.
+	 * A single ATT read is capped at MTU-1, so larger values come back
+	 * truncated at the first read.
+	 */
 	{
 		uint16_t len = read_chrc(notify_svc_button_handle);
+		uint16_t expected = MIN(NOTIFY_SVC_BUTTON_SIZE, att_mtu - 1);
 
-		if (len != NOTIFY_SVC_BUTTON_SIZE) {
-			TEST_FAIL("notify_svc/button read len %u, expected %u",
-				  len, NOTIFY_SVC_BUTTON_SIZE);
+		if (len != expected) {
+			TEST_FAIL("notify_svc/button read len %u, expected %u", len, expected);
 		}
 	}
 	{
 		uint16_t len = read_chrc(notify_svc_led_handle);
+		uint16_t expected = MIN(NOTIFY_SVC_LED_SIZE, att_mtu - 1);
 
-		if (len != NOTIFY_SVC_LED_SIZE) {
-			TEST_FAIL("notify_svc/led read len %u, expected %u",
-				  len, NOTIFY_SVC_LED_SIZE);
+		if (len != expected) {
+			TEST_FAIL("notify_svc/led read len %u, expected %u", len, expected);
 		}
 	}
 
 	/* Exercise writable characteristics; verify by read-back when possible. */
 	{
 		uint8_t pattern[NOTIFY_SVC_LED_SIZE];
+		/* An ATT write without long-write support is capped at MTU-3. */
+		uint16_t wlen = MIN(sizeof(pattern), att_mtu - 3);
 
 		for (size_t i = 0; i < sizeof(pattern); i++) {
 			pattern[i] = (uint8_t)(0xa5 ^ i);
 		}
 
-		write_chrc(notify_svc_led_handle, pattern, sizeof(pattern));
+		write_chrc(notify_svc_led_handle, pattern, wlen);
 		{
 			uint16_t len = read_chrc(notify_svc_led_handle);
 
-			if (len != sizeof(pattern) ||
-			    memcmp(read_buf, pattern, sizeof(pattern)) != 0) {
+			if (len < wlen || memcmp(read_buf, pattern, wlen) != 0) {
 				TEST_FAIL("notify_svc/led read-back mismatch");
 			}
 		}
@@ -389,15 +391,14 @@ static void test_central(void)
 
 	/* Wait for the expected pushes. */
 	for (int i = 0; i < WAIT_ITERS; i++) {
-		if (notify_svc_button_received >= NOTIFICATION_COUNT ) {
+		if (notify_svc_button_received >= NOTIFICATION_COUNT) {
 			break;
 		}
 		k_sleep(K_MSEC(10));
 	}
 	if (notify_svc_button_received < NOTIFICATION_COUNT) {
 		TEST_FAIL("notify_svc/button: got %u values, expected %u",
-			  notify_svc_button_received,
-			  NOTIFICATION_COUNT);
+			  notify_svc_button_received, NOTIFICATION_COUNT);
 	}
 
 	/* Verification complete; let the peripheral pass. */

@@ -110,7 +110,6 @@ static void test_peripheral(void)
 	bk_sync_wait();
 	printk("Peer ready, pushing values\n");
 
-
 	/* Wait until the central has verified all values, then pass. */
 	bk_sync_wait();
 
