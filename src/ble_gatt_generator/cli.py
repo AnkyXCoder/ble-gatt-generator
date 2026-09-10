@@ -1,4 +1,4 @@
-"""gatt-gen CLI entry point."""
+"""ble-gatt-generator CLI entry point."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ from pathlib import Path
 
 import click
 
-from gatt_gen.generator import generate
-from gatt_gen.schema import load_profile
+from ble_gatt_generator.generator import generate
+from ble_gatt_generator.schema import load_profile
 
 
 @click.command()
@@ -32,7 +32,8 @@ def main(input_file: Path, output_dir: Path) -> None:
     """Generate a Zephyr GATT service from a YAML profile."""
     profile = load_profile(str(input_file))
     generate(profile, output_dir)
-    click.echo(f"Generated {len(profile.services)} service(s) into {output_dir}")
+    click.echo(
+        f"Generated {len(profile.services)} service(s) into {output_dir}")
 
 
 if __name__ == "__main__":

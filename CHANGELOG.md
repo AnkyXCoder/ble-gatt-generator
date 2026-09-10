@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed the project and package from `zephyr-gatt-gen` / `gatt_gen` to
+  `ble-gatt-generator` / `ble_gatt_generator`
+
 ### Added
 
 - M1: Minimal YAML-to-Zephyr GATT generator

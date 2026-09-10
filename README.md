@@ -1,10 +1,10 @@
-# zephyr-gatt-gen
+# ble-gatt-generator
 
 A schema-driven generator for Zephyr BLE GATT services.
 
-`gatt-gen` reads a YAML profile and emits idiomatic, formatted Zephyr C source,
-ready-to-build `prj.conf`/`CMakeLists.txt`/sample definitions, and (coming in M4)
-companion Python/Bleak and Web Bluetooth test clients.
+`ble-gatt-generator` reads a YAML profile and emits idiomatic, formatted Zephyr
+C source, ready-to-build `prj.conf`/`CMakeLists.txt`/sample definitions, and
+(coming in M4) companion Python/Bleak and Web Bluetooth test clients.
 
 ## Status
 
@@ -15,7 +15,7 @@ for `native_sim` without hardware.
 
 ```bash
 # From the repo root with the Zephyr tree referenced
-PYTHONPATH=src python -m gatt_gen.cli \
+PYTHONPATH=src python -m ble_gatt_generator.cli \
     -i examples/minimal.yaml \
     -o samples/gatt_gen_minimal
 
@@ -71,19 +71,19 @@ For each service the tool emits:
 
 ## Features
 
-| Feature | Status |
-| --- | --- |
-| YAML profile schema with Pydantic validation | Done |
-| `BT_GATT_SERVICE_DEFINE` / `BT_GATT_CHARACTERISTIC` generation | Done |
-| Read, write, write-without-response, notify, indicate properties | Done |
-| Security/permission flags including encrypted and authenticated | Done |
-| `k_mutex`-protected `get_*` / `set_*` helpers | Done |
-| `BT_GATT_CCC`, `BT_GATT_CUD`, `BT_GATT_CPF`, `BT_GATT_CEP` | Done |
-| Generated `*_notify()` and `*_indicate()` helpers | Done |
-| `native_sim` build validation | Done |
-| Python/Bleak test client | Planned (M4) |
-| Web Bluetooth test client | Planned (M4) |
-| `west` extension and CI | Planned (M4/M5) |
+| Feature                                                          | Status          |
+| ---------------------------------------------------------------- | --------------- |
+| YAML profile schema with Pydantic validation                     | Done            |
+| `BT_GATT_SERVICE_DEFINE` / `BT_GATT_CHARACTERISTIC` generation   | Done            |
+| Read, write, write-without-response, notify, indicate properties | Done            |
+| Security/permission flags including encrypted and authenticated  | Done            |
+| `k_mutex`-protected `get_*` / `set_*` helpers                    | Done            |
+| `BT_GATT_CCC`, `BT_GATT_CUD`, `BT_GATT_CPF`, `BT_GATT_CEP`       | Done            |
+| Generated `*_notify()` and `*_indicate()` helpers                | Done            |
+| `native_sim` build validation                                    | Done            |
+| Python/Bleak test client                                         | Planned (M4)    |
+| Web Bluetooth test client                                        | Planned (M4)    |
+| `west` extension and CI                                          | Planned (M4/M5) |
 
 ## Project layout
 
@@ -91,7 +91,7 @@ For each service the tool emits:
 .
 ├── examples/              # Example YAML profiles
 ├── samples/               # Generated Zephyr samples
-├── src/gatt_gen/          # Python generator and Jinja2 templates
+├── src/ble_gatt_generator/ # Python generator and Jinja2 templates
 │   ├── cli.py
 │   ├── schema.py
 │   ├── generator.py

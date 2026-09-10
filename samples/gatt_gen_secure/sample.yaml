@@ -2,7 +2,7 @@ sample:
   name: GATT Generated gatt_gen_secure
 
 tests:
-  sample.bluetooth.gatt_gen_gatt_gen_secure:
+  sample.bluetooth.ble_gatt_generator_gatt_gen_secure:
     build_only: true
     platform_allow:
       - native_sim

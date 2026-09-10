@@ -57,9 +57,8 @@ int secure_svc_secret_get(uint8_t *data, uint16_t len)
 }
 
 /* Characteristic callbacks */
-static ssize_t secure_svc_secret_read(struct bt_conn *conn,
-						       const struct bt_gatt_attr *attr,
-						       void *buf, uint16_t len, uint16_t offset)
+static ssize_t secure_svc_secret_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+				      void *buf, uint16_t len, uint16_t offset)
 {
 	uint8_t *value = (uint8_t *)attr->user_data;
 	ssize_t ret;
@@ -70,10 +69,9 @@ static ssize_t secure_svc_secret_read(struct bt_conn *conn,
 
 	return ret;
 }
-static ssize_t secure_svc_secret_write(struct bt_conn *conn,
-							const struct bt_gatt_attr *attr,
-							const void *buf, uint16_t len,
-							uint16_t offset, uint8_t flags)
+static ssize_t secure_svc_secret_write(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+				       const void *buf, uint16_t len, uint16_t offset,
+				       uint8_t flags)
 {
 	uint8_t *value = (uint8_t *)attr->user_data;
 
@@ -91,11 +89,13 @@ static ssize_t secure_svc_secret_write(struct bt_conn *conn,
 /* Public API: push helpers */
 
 /* Service declaration */
-BT_GATT_SERVICE_DEFINE(secure_svc,
-	BT_GATT_PRIMARY_SERVICE(BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0))),
-	BT_GATT_CHARACTERISTIC(BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef1)),
+BT_GATT_SERVICE_DEFINE(
+	secure_svc,
+	BT_GATT_PRIMARY_SERVICE(BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678,
+								       0x1234, 0x56789abcdef0))),
+	BT_GATT_CHARACTERISTIC(BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678,
+								      0x1234, 0x56789abcdef1)),
 			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE,
 			       BT_GATT_PERM_READ_ENCRYPT | BT_GATT_PERM_WRITE_ENCRYPT,
-secure_svc_secret_read,
-secure_svc_secret_write,
+			       secure_svc_secret_read, secure_svc_secret_write,
 			       secure_svc_secret_value));

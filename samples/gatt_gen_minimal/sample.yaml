@@ -2,7 +2,7 @@ sample:
   name: GATT Generated gatt_gen_minimal
 
 tests:
-  sample.bluetooth.gatt_gen_gatt_gen_minimal:
+  sample.bluetooth.ble_gatt_generator_gatt_gen_minimal:
     build_only: true
     platform_allow:
       - native_sim

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from gatt_gen.schema import Profile, Service
+from ble_gatt_generator.schema import Profile, Service
 
 
 def _uuid_128_parts(uuid: str) -> tuple[str, str, str, str, str]:
@@ -48,12 +48,12 @@ def _ad_uuid_bytes(uuid: str) -> str:
 
 
 def _c_guard(name: str) -> str:
-    return f"ZEPHYR_GATT_GEN_{re.sub(r'[^A-Z0-9]', '_', name.upper())}_H_"
+    return f"BLE_GATT_GENERATOR_{re.sub(r'[^A-Z0-9]', '_', name.upper())}_H_"
 
 
 def _make_env() -> Environment:
     env = Environment(
-        loader=PackageLoader("gatt_gen", "templates/zephyr"),
+        loader=PackageLoader("ble_gatt_generator", "templates/zephyr"),
         autoescape=select_autoescape(disabled_extensions=("j2",)),
         keep_trailing_newline=True,
         lstrip_blocks=True,
