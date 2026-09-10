@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+"""Bleak test client for the {{ profile.name }} GATT profile."""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import sys
+from typing import Any
+
+from bleak import BleakClient, BleakScanner
+
+SERVICE_UUID = "{{ service.uuid }}"
+
+CHARACTERISTICS: dict[str, dict[str, Any]] = {
+{% for chrc in service.characteristics %}
+    "{{ chrc.name }}": {
+        "uuid": "{{ chrc.uuid }}",
+        "size": {{ chrc.size }},
+        "properties": {{ chrc.properties | tojson }},
+    },
+{% endfor %}
+}
+
+
+def _notification_handler(sender: object, data: bytearray) -> None:
+    print(f"Notification from {sender}: {data.hex()}")
+
+
+async def _exercise(client: BleakClient, name: str, info: dict[str, Any]) -> None:
+    print(f"\n== {name} ({info['uuid']}) ==")
+
+    if "read" in info["properties"]:
+        value = await client.read_gatt_char(info["uuid"])
+        print(f"  read: {value.hex()}")
+
+    if "write" in info["properties"]:
+        pattern = bytes([i % 256 for i in range(info["size"])])
+        await client.write_gatt_char(info["uuid"], pattern, response=True)
+        print(f"  wrote: {pattern.hex()}")
+        value = await client.read_gatt_char(info["uuid"])
+        print(f"  read back: {value.hex()}")
+
+    if "notify" in info["properties"] or "indicate" in info["properties"]:
+        await client.start_notify(info["uuid"], _notification_handler)
+        print("  waiting 5s for notifications/indications ...")
+        await asyncio.sleep(5)
+        await client.stop_notify(info["uuid"])
+        print("  stopped notifications")
+
+
+async def _resolve_address(args: argparse.Namespace) -> str | None:
+    if args.address:
+        return args.address
+    if not args.name:
+        print("Provide --name or --address", file=sys.stderr)
+        return None
+
+    print("Scanning ...")
+    devices = await BleakScanner.discover()
+    for d in devices:
+        if d.name and args.name in d.name:
+            return d.address
+
+    print(f"Device containing '{args.name}' not found", file=sys.stderr)
+    return None
+
+
+async def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Bleak test client for {{ profile.name }}"
+    )
+    parser.add_argument("--name", default=None, help="Device name substring")
+    parser.add_argument("--address", default=None, help="Bluetooth address")
+    args = parser.parse_args()
+
+    address = await _resolve_address(args)
+    if not address:
+        return 1
+
+    print(f"Connecting to {address} ...")
+    async with BleakClient(address) as client:
+        print("Connected")
+        services = await client.get_services()
+        if SERVICE_UUID not in [str(s.uuid) for s in services.services.values()]:
+            print(f"Service {SERVICE_UUID} not found", file=sys.stderr)
+            return 1
+
+        for name, info in CHARACTERISTICS.items():
+            await _exercise(client, name, info)
+
+    print("\nDone.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(asyncio.run(main()))

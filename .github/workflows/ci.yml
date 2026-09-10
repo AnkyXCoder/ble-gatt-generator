@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-samples:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          pip install click jinja2 "pydantic>=2.0.0" pyyaml
+
+      - name: Prepare Zephyr workspace
+        env:
+          ZEPHYR_BASE: ${{ vars.ZEPHYR_BASE }}
+        run: |
+          # This workflow expects ZEPHYR_BASE to point to a checked-out Zephyr tree.
+          # In a real runner, replace this with west init/update and the Zephyr SDK.
+          [ -n "$ZEPHYR_BASE" ] || { echo "Repository variable ZEPHYR_BASE is required"; exit 1; }
+
+      - name: Build all samples
+        env:
+          ZEPHYR_BASE: ${{ vars.ZEPHYR_BASE }}
+          PYTHON_EXECUTABLE: python3
+        run: bash scripts/ci.sh

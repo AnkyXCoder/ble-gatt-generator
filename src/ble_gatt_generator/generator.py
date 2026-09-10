@@ -104,3 +104,24 @@ def generate(profile: Profile, output_dir: Path) -> None:
     ]:
         text = env.get_template(template_name).render({"profile": profile})
         (output_dir / out_name).write_text(text, encoding="utf-8")
+
+    clients_env = Environment(
+        loader=PackageLoader("ble_gatt_generator", "templates/clients"),
+        autoescape=select_autoescape(disabled_extensions=("j2",)),
+        keep_trailing_newline=True,
+        lstrip_blocks=True,
+        trim_blocks=True,
+    )
+    client_ctx = {
+        "profile": profile,
+        "service": profile.services[0],
+        "year": "2026",
+    }
+    bleak_t = clients_env.get_template("bleak_client.py.j2")
+    (output_dir / "test_client.py").write_text(
+        bleak_t.render(client_ctx), encoding="utf-8")
+    (output_dir / "test_client.py").chmod(0o755)
+
+    web_t = clients_env.get_template("web_client.html.j2")
+    (output_dir / "web_client.html").write_text(
+        web_t.render(client_ctx), encoding="utf-8")

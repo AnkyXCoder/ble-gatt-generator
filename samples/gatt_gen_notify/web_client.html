@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>gatt_gen_notify Web Bluetooth Client</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    h1 { font-size: 1.4rem; }
+    h3 { font-size: 1rem; margin-bottom: 0.25rem; }
+    #log { background: #f5f5f5; border: 1px solid #ccc; padding: 1rem; height: 12rem; overflow: auto; }
+    .char { margin: 1rem 0; padding: 1rem; border: 1px solid #ddd; }
+    button { margin-right: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>gatt_gen_notify Web Bluetooth Client</h1>
+  <p><button id="connect">Connect</button></p>
+  <pre id="log"></pre>
+  <div id="controls"></div>
+
+  <script>
+    const serviceUuid = "12345678-1234-5678-1234-56789abcdef0";
+    const characteristics = [
+      {
+        name: "button",
+        uuid: "12345678-1234-5678-1234-56789abcdef1",
+        properties: ["read", "notify"],
+        size: 1
+      },
+      {
+        name: "led",
+        uuid: "12345678-1234-5678-1234-56789abcdef2",
+        properties: ["read", "write"],
+        size: 1
+      },
+    ];
+
+    const log = document.getElementById('log');
+    function info(msg) {
+      log.textContent += msg + '\n';
+      log.scrollTop = log.scrollHeight;
+    }
+
+    let server = null;
+
+    document.getElementById('connect').addEventListener('click', async () => {
+      try {
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{ namePrefix: 'GATT Gen' }],
+          optionalServices: [serviceUuid]
+        });
+        server = await device.gatt.connect();
+        info('Connected to ' + (device.name || device.id));
+      } catch (e) {
+        info('Error: ' + e);
+      }
+    });
+
+    async function getCharacteristic(uuid) {
+      const service = await server.getPrimaryService(serviceUuid);
+      return await service.getCharacteristic(uuid);
+    }
+
+    async function readChar(uuid) {
+      try {
+        const ch = await getCharacteristic(uuid);
+        const value = await ch.readValue();
+        const arr = new Uint8Array(value.buffer);
+        info('read ' + uuid + ': ' + arr.toString());
+      } catch (e) {
+        info('read error: ' + e);
+      }
+    }
+
+    async function writeChar(uuid, size) {
+      try {
+        const ch = await getCharacteristic(uuid);
+        const pattern = new Uint8Array(size);
+        for (let i = 0; i < size; i++) {
+          pattern[i] = i % 256;
+        }
+        await ch.writeValue(pattern);
+        info('wrote ' + uuid + ': ' + pattern.toString());
+      } catch (e) {
+        info('write error: ' + e);
+      }
+    }
+
+    async function toggleNotify(uuid, ch) {
+      try {
+        if (ch.__notifying) {
+          await ch.stopNotifications();
+          ch.removeEventListener('characteristicvaluechanged', ch.__handler);
+          info('stopped notifications for ' + uuid);
+          ch.__notifying = false;
+          return;
+        }
+        ch.__handler = (event) => {
+          const value = event.target.value;
+          const arr = new Uint8Array(value.buffer);
+          info('notification ' + uuid + ': ' + arr.toString());
+        };
+        ch.addEventListener('characteristicvaluechanged', ch.__handler);
+        await ch.startNotifications();
+        info('started notifications for ' + uuid);
+        ch.__notifying = true;
+      } catch (e) {
+        info('notify error: ' + e);
+      }
+    }
+
+    const controls = document.getElementById('controls');
+    characteristics.forEach((c) => {
+      const div = document.createElement('div');
+      div.className = 'char';
+      let html = '<h3>' + c.name + ' (' + c.uuid + ')</h3>';
+      if (c.properties.includes('read')) {
+        html += '<button class="read">Read</button>';
+      }
+      if (c.properties.includes('write')) {
+        html += '<button class="write">Write</button>';
+      }
+      if (c.properties.includes('notify') || c.properties.includes('indicate')) {
+        html += '<button class="notify">Notify/Indicate</button>';
+      }
+      div.innerHTML = html;
+
+      if (c.properties.includes('read')) {
+        div.querySelector('.read').addEventListener('click', () => readChar(c.uuid));
+      }
+      if (c.properties.includes('write')) {
+        div.querySelector('.write').addEventListener('click', () => writeChar(c.uuid, c.size));
+      }
+      if (c.properties.includes('notify') || c.properties.includes('indicate')) {
+        div.querySelector('.notify').addEventListener('click', async () => {
+          const ch = await getCharacteristic(c.uuid);
+          toggleNotify(c.uuid, ch);
+        });
+      }
+      controls.appendChild(div);
+    });
+  </script>
+</body>
+</html>

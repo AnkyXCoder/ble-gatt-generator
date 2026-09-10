@@ -34,3 +34,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Added `examples/secure.yaml` and `samples/gatt_gen_secure`
   - Verified `native_sim` builds for `minimal`, `notify`, and `secure`
 - Initial `README.md` and `CHANGELOG.md`
+- M4: Test clients and CI
+  - Added `bleak_client.py.j2` and `web_client.html.j2` client templates
+  - Generate `test_client.py` and `web_client.html` with every profile
+  - Added `scripts/ci.sh` to build all `native_sim` samples
+  - Added `.github/workflows/ci.yml` for GitHub Actions
+  - Verified all three samples pass `scripts/ci.sh`
