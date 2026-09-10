@@ -10,8 +10,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Renamed the project and package from `zephyr-gatt-gen` / `gatt_gen` to
   `ble-gatt-generator` / `ble_gatt_generator`
+- Generated service now exposes `<SVC>_UUID`, `<SVC>_<CHRC>_UUID` and
+  `<SVC>_<CHRC>_SIZE` macros; service table wrapped in `clang-format off/on`
+  for one-attribute-per-line readability
+- Write callback honours `BT_GATT_WRITE_FLAG_PREPARE` and calls a weak
+  `<svc>_<chrc>_on_write()` hook after committing the value
+- `main.c` includes every service header and picks
+  `BT_DATA_UUID16_ALL`/`BT_DATA_UUID128_ALL` based on the UUID width
+- Bleak client uses `client.services` (not the deprecated `get_services()`),
+  covers all services, verifies write read-back and exits non-zero on failure
+- Web client supports multiple services, hex input for writes, and
+  subscribe/unsubscribe toggles
+- Stricter schema validation: UUID shape, size 1..512, CEP requires
+  `extended_properties`, no duplicate names/UUIDs/descriptor types, CCC is no
+  longer a user-declared descriptor
+- CLI/west now report Pydantic validation errors cleanly
 
 ### Added
+
+- `--force` flag; `src/main.c`, `prj.conf`, `CMakeLists.txt` and `sample.yaml`
+  are written once and never clobbered without it
+- `tests/` pytest suite (36 tests) covering schema rules and generator output
+- `scripts/regen_samples.sh` to regenerate and clang-format all samples
+- GitHub Actions: unit tests on Python 3.10/3.12, stale-sample check, and
+  `native_sim` builds in the Zephyr CI container
+- `pyproject.toml` optional extras: `dev` (pytest) and `client` (bleak)
 
 - M1: Minimal YAML-to-Zephyr GATT generator
   - `gatt-gen` CLI, Pydantic YAML schema, and Jinja2 templates

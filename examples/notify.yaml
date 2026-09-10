@@ -26,9 +26,11 @@ profile:
           properties:
             - read
             - write
+            - extended_properties
           permissions:
             - read
             - write
+            - prepare_write
           size: 1
           descriptors:
             - type: cud

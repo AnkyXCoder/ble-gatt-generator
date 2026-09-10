@@ -53,11 +53,21 @@ class GattGen(WestCommand):
             required=True,
             help="Output directory for generated artifacts.",
         )
+        parser.add_argument(
+            "-f",
+            "--force",
+            action="store_true",
+            help="Overwrite user-owned files (main.c, prj.conf, CMakeLists.txt, sample.yaml).",
+        )
         return parser
 
     def do_run(self, args, unknown_args) -> None:
         load_profile, generate = _import_core()
-        profile = load_profile(args.input)
+        try:
+            profile = load_profile(args.input)
+        except ValueError as exc:
+            self.die(f"Invalid profile {args.input}:\n{exc}")
         output_dir = Path(args.output)
-        generate(profile, output_dir)
-        print(f"Generated {len(profile.services)} service(s) into {output_dir}")
+        written = generate(profile, output_dir, force=args.force)
+        self.inf(f"Generated {len(profile.services)} service(s), "
+                 f"{len(written)} file(s) into {output_dir}")
