@@ -1,0 +1,22 @@
+profile:
+  name: gatt_gen_minimal
+  services:
+    - name: minimal_svc
+      uuid: 12345678-1234-5678-1234-56789abcdef0
+      characteristics:
+        - name: read_only
+          uuid: 12345678-1234-5678-1234-56789abcdef1
+          properties:
+            - read
+          permissions:
+            - read
+          size: 1
+        - name: read_write
+          uuid: 12345678-1234-5678-1234-56789abcdef2
+          properties:
+            - read
+            - write
+          permissions:
+            - read
+            - write
+          size: 20

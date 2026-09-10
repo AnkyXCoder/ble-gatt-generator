@@ -18,6 +18,8 @@ generated/
 .vscode/
 .idea/
 *.swp
+.cache/
+
 
 # Zephyr build
 cmake-build-*/
