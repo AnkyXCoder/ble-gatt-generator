@@ -14,6 +14,7 @@
 #include <string.h>
 #include <zephyr/toolchain.h>
 #include <zephyr/sys/printk.h>
+#include <zephyr/kernel.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/uuid.h>
@@ -23,6 +24,10 @@
 /* Characteristic value buffers */
 static uint8_t notify_svc_button_value[1];
 static uint8_t notify_svc_led_value[1];
+
+/* Thread-safe accessors */
+K_MUTEX_DEFINE(notify_svc_button_lock);
+K_MUTEX_DEFINE(notify_svc_led_lock);
 
 /* Characteristic presentation format and extended properties data */
 static struct bt_gatt_cpf notify_svc_button_cpf = {
@@ -36,13 +41,71 @@ static struct bt_gatt_cep notify_svc_led_cep = {
 	.properties = BT_GATT_CEP_RELIABLE_WRITE,
 };
 
+/* button accessors */
+int notify_svc_button_set(const uint8_t *data, uint16_t len)
+{
+	if (len > 1) {
+		return -EINVAL;
+	}
+
+	k_mutex_lock(&notify_svc_button_lock, K_FOREVER);
+	memcpy(notify_svc_button_value, data, len);
+	k_mutex_unlock(&notify_svc_button_lock);
+
+	return 0;
+}
+
+int notify_svc_button_get(uint8_t *data, uint16_t len)
+{
+	if (len > 1) {
+		return -EINVAL;
+	}
+
+	k_mutex_lock(&notify_svc_button_lock, K_FOREVER);
+	memcpy(data, notify_svc_button_value, len);
+	k_mutex_unlock(&notify_svc_button_lock);
+
+	return 0;
+}
+/* led accessors */
+int notify_svc_led_set(const uint8_t *data, uint16_t len)
+{
+	if (len > 1) {
+		return -EINVAL;
+	}
+
+	k_mutex_lock(&notify_svc_led_lock, K_FOREVER);
+	memcpy(notify_svc_led_value, data, len);
+	k_mutex_unlock(&notify_svc_led_lock);
+
+	return 0;
+}
+
+int notify_svc_led_get(uint8_t *data, uint16_t len)
+{
+	if (len > 1) {
+		return -EINVAL;
+	}
+
+	k_mutex_lock(&notify_svc_led_lock, K_FOREVER);
+	memcpy(data, notify_svc_led_value, len);
+	k_mutex_unlock(&notify_svc_led_lock);
+
+	return 0;
+}
+
 /* Characteristic callbacks */
 static ssize_t notify_svc_button_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 				      void *buf, uint16_t len, uint16_t offset)
 {
 	uint8_t *value = (uint8_t *)attr->user_data;
+	ssize_t ret;
 
-	return bt_gatt_attr_read(conn, attr, buf, len, offset, value, 1);
+	k_mutex_lock(&notify_svc_button_lock, K_FOREVER);
+	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, value, 1);
+	k_mutex_unlock(&notify_svc_button_lock);
+
+	return ret;
 }
 static void notify_svc_button_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
@@ -58,8 +121,13 @@ static ssize_t notify_svc_led_read(struct bt_conn *conn, const struct bt_gatt_at
 				   uint16_t len, uint16_t offset)
 {
 	uint8_t *value = (uint8_t *)attr->user_data;
+	ssize_t ret;
 
-	return bt_gatt_attr_read(conn, attr, buf, len, offset, value, 1);
+	k_mutex_lock(&notify_svc_led_lock, K_FOREVER);
+	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, value, 1);
+	k_mutex_unlock(&notify_svc_led_lock);
+
+	return ret;
 }
 static ssize_t notify_svc_led_write(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 				    const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
@@ -70,18 +138,27 @@ static ssize_t notify_svc_led_write(struct bt_conn *conn, const struct bt_gatt_a
 		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
 	}
 
+	k_mutex_lock(&notify_svc_led_lock, K_FOREVER);
 	memcpy(value + offset, buf, len);
+	k_mutex_unlock(&notify_svc_led_lock);
 
 	return len;
 }
 
-/* Public API */
+/* Public API: push helpers */
 int notify_svc_button_notify(const uint8_t *data, uint16_t len)
 {
+	int err;
+
+	err = notify_svc_button_set(data, len);
+	if (err) {
+		return err;
+	}
+
 	return bt_gatt_notify_uuid(NULL,
 				   BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(
 					   0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef1)),
-				   NULL, data, len);
+				   NULL, notify_svc_button_value, len);
 }
 
 /* Service declaration */

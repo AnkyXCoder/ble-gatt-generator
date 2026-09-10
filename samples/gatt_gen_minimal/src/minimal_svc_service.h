@@ -16,4 +16,39 @@
 #include <stdint.h>
 #include <zephyr/bluetooth/gatt.h>
 
+/** @brief Set the read_only characteristic value.
+ *
+ *  @param data Pointer to the data to copy into the value buffer.
+ *  @param len  Number of bytes to copy; must not exceed the value size.
+ *
+ *  @return 0 on success, or a negative error code on failure.
+ */
+int minimal_svc_read_only_set(const uint8_t *data, uint16_t len);
+
+/** @brief Get the read_only characteristic value.
+ *
+ *  @param data Buffer to receive the value.
+ *  @param len  Number of bytes to copy; must not exceed the value size.
+ *
+ *  @return 0 on success, or a negative error code on failure.
+ */
+int minimal_svc_read_only_get(uint8_t *data, uint16_t len);
+/** @brief Set the read_write characteristic value.
+ *
+ *  @param data Pointer to the data to copy into the value buffer.
+ *  @param len  Number of bytes to copy; must not exceed the value size.
+ *
+ *  @return 0 on success, or a negative error code on failure.
+ */
+int minimal_svc_read_write_set(const uint8_t *data, uint16_t len);
+
+/** @brief Get the read_write characteristic value.
+ *
+ *  @param data Buffer to receive the value.
+ *  @param len  Number of bytes to copy; must not exceed the value size.
+ *
+ *  @return 0 on success, or a negative error code on failure.
+ */
+int minimal_svc_read_write_get(uint8_t *data, uint16_t len);
+
 #endif /* ZEPHYR_GATT_GEN_MINIMAL_SVC_H_ */

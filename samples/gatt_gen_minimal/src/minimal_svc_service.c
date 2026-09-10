@@ -14,6 +14,7 @@
 #include <string.h>
 #include <zephyr/toolchain.h>
 #include <zephyr/sys/printk.h>
+#include <zephyr/kernel.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/uuid.h>
@@ -24,22 +25,89 @@
 static uint8_t minimal_svc_read_only_value[1];
 static uint8_t minimal_svc_read_write_value[20];
 
+/* Thread-safe accessors */
+K_MUTEX_DEFINE(minimal_svc_read_only_lock);
+K_MUTEX_DEFINE(minimal_svc_read_write_lock);
+
 /* Characteristic presentation format and extended properties data */
+
+/* read_only accessors */
+int minimal_svc_read_only_set(const uint8_t *data, uint16_t len)
+{
+	if (len > 1) {
+		return -EINVAL;
+	}
+
+	k_mutex_lock(&minimal_svc_read_only_lock, K_FOREVER);
+	memcpy(minimal_svc_read_only_value, data, len);
+	k_mutex_unlock(&minimal_svc_read_only_lock);
+
+	return 0;
+}
+
+int minimal_svc_read_only_get(uint8_t *data, uint16_t len)
+{
+	if (len > 1) {
+		return -EINVAL;
+	}
+
+	k_mutex_lock(&minimal_svc_read_only_lock, K_FOREVER);
+	memcpy(data, minimal_svc_read_only_value, len);
+	k_mutex_unlock(&minimal_svc_read_only_lock);
+
+	return 0;
+}
+/* read_write accessors */
+int minimal_svc_read_write_set(const uint8_t *data, uint16_t len)
+{
+	if (len > 20) {
+		return -EINVAL;
+	}
+
+	k_mutex_lock(&minimal_svc_read_write_lock, K_FOREVER);
+	memcpy(minimal_svc_read_write_value, data, len);
+	k_mutex_unlock(&minimal_svc_read_write_lock);
+
+	return 0;
+}
+
+int minimal_svc_read_write_get(uint8_t *data, uint16_t len)
+{
+	if (len > 20) {
+		return -EINVAL;
+	}
+
+	k_mutex_lock(&minimal_svc_read_write_lock, K_FOREVER);
+	memcpy(data, minimal_svc_read_write_value, len);
+	k_mutex_unlock(&minimal_svc_read_write_lock);
+
+	return 0;
+}
 
 /* Characteristic callbacks */
 static ssize_t minimal_svc_read_only_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 					  void *buf, uint16_t len, uint16_t offset)
 {
 	uint8_t *value = (uint8_t *)attr->user_data;
+	ssize_t ret;
 
-	return bt_gatt_attr_read(conn, attr, buf, len, offset, value, 1);
+	k_mutex_lock(&minimal_svc_read_only_lock, K_FOREVER);
+	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, value, 1);
+	k_mutex_unlock(&minimal_svc_read_only_lock);
+
+	return ret;
 }
 static ssize_t minimal_svc_read_write_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 					   void *buf, uint16_t len, uint16_t offset)
 {
 	uint8_t *value = (uint8_t *)attr->user_data;
+	ssize_t ret;
 
-	return bt_gatt_attr_read(conn, attr, buf, len, offset, value, 20);
+	k_mutex_lock(&minimal_svc_read_write_lock, K_FOREVER);
+	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, value, 20);
+	k_mutex_unlock(&minimal_svc_read_write_lock);
+
+	return ret;
 }
 static ssize_t minimal_svc_read_write_write(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 					    const void *buf, uint16_t len, uint16_t offset,
@@ -51,12 +119,14 @@ static ssize_t minimal_svc_read_write_write(struct bt_conn *conn, const struct b
 		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
 	}
 
+	k_mutex_lock(&minimal_svc_read_write_lock, K_FOREVER);
 	memcpy(value + offset, buf, len);
+	k_mutex_unlock(&minimal_svc_read_write_lock);
 
 	return len;
 }
 
-/* Public API */
+/* Public API: push helpers */
 
 /* Service declaration */
 BT_GATT_SERVICE_DEFINE(

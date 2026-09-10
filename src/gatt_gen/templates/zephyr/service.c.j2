@@ -14,6 +14,7 @@
 #include <string.h>
 #include <zephyr/toolchain.h>
 #include <zephyr/sys/printk.h>
+#include <zephyr/kernel.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/uuid.h>
@@ -23,6 +24,13 @@
 /* Characteristic value buffers */
 {% for chrc in service.characteristics %}
 static uint8_t {{ service.name }}_{{ chrc.name }}_value[{{ chrc.size }}];
+{% endfor %}
+
+/* Thread-safe accessors */
+{% for chrc in service.characteristics %}
+{% if chrc.thread_safe %}
+K_MUTEX_DEFINE({{ service.name }}_{{ chrc.name }}_lock);
+{% endif %}
 {% endfor %}
 
 /* Characteristic presentation format and extended properties data */
@@ -48,6 +56,43 @@ static struct bt_gatt_cep {{ service.name }}_{{ chrc.name }}_cep = {
 {% endif %}
 {% endfor %}
 
+{% for chrc in service.characteristics %}
+/* {{ chrc.name }} accessors */
+int {{ service.name }}_{{ chrc.name }}_set(const uint8_t *data, uint16_t len)
+{
+	if (len > {{ chrc.size }}) {
+		return -EINVAL;
+	}
+
+	{% if chrc.thread_safe %}
+	k_mutex_lock(&{{ service.name }}_{{ chrc.name }}_lock, K_FOREVER);
+	{% endif %}
+	memcpy({{ service.name }}_{{ chrc.name }}_value, data, len);
+	{% if chrc.thread_safe %}
+	k_mutex_unlock(&{{ service.name }}_{{ chrc.name }}_lock);
+	{% endif %}
+
+	return 0;
+}
+
+int {{ service.name }}_{{ chrc.name }}_get(uint8_t *data, uint16_t len)
+{
+	if (len > {{ chrc.size }}) {
+		return -EINVAL;
+	}
+
+	{% if chrc.thread_safe %}
+	k_mutex_lock(&{{ service.name }}_{{ chrc.name }}_lock, K_FOREVER);
+	{% endif %}
+	memcpy(data, {{ service.name }}_{{ chrc.name }}_value, len);
+	{% if chrc.thread_safe %}
+	k_mutex_unlock(&{{ service.name }}_{{ chrc.name }}_lock);
+	{% endif %}
+
+	return 0;
+}
+{% endfor %}
+
 /* Characteristic callbacks */
 {% for chrc in service.characteristics %}
 {% if 'read' in chrc.properties %}
@@ -56,8 +101,17 @@ static ssize_t {{ service.name }}_{{ chrc.name }}_read(struct bt_conn *conn,
 						       void *buf, uint16_t len, uint16_t offset)
 {
 	uint8_t *value = (uint8_t *)attr->user_data;
+	ssize_t ret;
 
-	return bt_gatt_attr_read(conn, attr, buf, len, offset, value, {{ chrc.size }});
+	{% if chrc.thread_safe %}
+	k_mutex_lock(&{{ service.name }}_{{ chrc.name }}_lock, K_FOREVER);
+	{% endif %}
+	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, value, {{ chrc.size }});
+	{% if chrc.thread_safe %}
+	k_mutex_unlock(&{{ service.name }}_{{ chrc.name }}_lock);
+	{% endif %}
+
+	return ret;
 }
 {% endif %}
 {% if 'write' in chrc.properties or 'write_without_response' in chrc.properties %}
@@ -72,7 +126,13 @@ static ssize_t {{ service.name }}_{{ chrc.name }}_write(struct bt_conn *conn,
 		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
 	}
 
+	{% if chrc.thread_safe %}
+	k_mutex_lock(&{{ service.name }}_{{ chrc.name }}_lock, K_FOREVER);
+	{% endif %}
 	memcpy(value + offset, buf, len);
+	{% if chrc.thread_safe %}
+	k_mutex_unlock(&{{ service.name }}_{{ chrc.name }}_lock);
+	{% endif %}
 
 	return len;
 }
@@ -92,24 +152,32 @@ static void {{ service.name }}_{{ chrc.name }}_ccc_cfg_changed(const struct bt_g
 {% endif %}
 {% endfor %}
 
-/* Public API */
+/* Public API: push helpers */
 {% for chrc in service.characteristics %}
 {% if chrc.has_notify() %}
 int {{ service.name }}_{{ chrc.name }}_notify(const uint8_t *data, uint16_t len)
 {
-	return bt_gatt_notify_uuid(NULL, {{ chrc.uuid | uuid_macro }}, NULL, data, len);
+	int err;
+
+	err = {{ service.name }}_{{ chrc.name }}_set(data, len);
+	if (err) {
+		return err;
+	}
+
+	return bt_gatt_notify_uuid(NULL, {{ chrc.uuid | uuid_macro }}, NULL,
+				   {{ service.name }}_{{ chrc.name }}_value, len);
 }
 {% endif %}
 {% if chrc.has_indicate() %}
 int {{ service.name }}_{{ chrc.name }}_indicate(const uint8_t *data, uint16_t len)
 {
 	static struct bt_gatt_indicate_params params;
+	int err;
 
-	if (len > {{ chrc.size }}) {
-		return -EINVAL;
+	err = {{ service.name }}_{{ chrc.name }}_set(data, len);
+	if (err) {
+		return err;
 	}
-
-	memcpy({{ service.name }}_{{ chrc.name }}_value, data, len);
 
 	params.uuid = {{ chrc.uuid | uuid_macro }};
 	params.attr = NULL;

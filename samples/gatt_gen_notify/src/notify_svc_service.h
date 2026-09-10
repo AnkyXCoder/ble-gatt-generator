@@ -16,13 +16,47 @@
 #include <stdint.h>
 #include <zephyr/bluetooth/gatt.h>
 
-/** @brief Send a notification for the button characteristic.
+/** @brief Set the button characteristic value.
  *
- *  @param data Pointer to the data to notify.
+ *  @param data Pointer to the data to copy into the value buffer.
+ *  @param len  Number of bytes to copy; must not exceed the value size.
+ *
+ *  @return 0 on success, or a negative error code on failure.
+ */
+int notify_svc_button_set(const uint8_t *data, uint16_t len);
+
+/** @brief Get the button characteristic value.
+ *
+ *  @param data Buffer to receive the value.
+ *  @param len  Number of bytes to copy; must not exceed the value size.
+ *
+ *  @return 0 on success, or a negative error code on failure.
+ */
+int notify_svc_button_get(uint8_t *data, uint16_t len);
+/** @brief Notify the button characteristic.
+ *
+ *  @param data Pointer to the data to update and notify.
  *  @param len  Length of the data in bytes.
  *
- *  @return 0 on success or a negative error code.
+ *  @return 0 on success, or a negative error code on failure.
  */
 int notify_svc_button_notify(const uint8_t *data, uint16_t len);
+/** @brief Set the led characteristic value.
+ *
+ *  @param data Pointer to the data to copy into the value buffer.
+ *  @param len  Number of bytes to copy; must not exceed the value size.
+ *
+ *  @return 0 on success, or a negative error code on failure.
+ */
+int notify_svc_led_set(const uint8_t *data, uint16_t len);
+
+/** @brief Get the led characteristic value.
+ *
+ *  @param data Buffer to receive the value.
+ *  @param len  Number of bytes to copy; must not exceed the value size.
+ *
+ *  @return 0 on success, or a negative error code on failure.
+ */
+int notify_svc_led_get(uint8_t *data, uint16_t len);
 
 #endif /* ZEPHYR_GATT_GEN_NOTIFY_SVC_H_ */

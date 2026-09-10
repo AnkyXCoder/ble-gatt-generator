@@ -17,23 +17,40 @@
 #include <zephyr/bluetooth/gatt.h>
 
 {% for chrc in service.characteristics %}
-{% if chrc.has_notify() %}
-/** @brief Send a notification for the {{ chrc.name }} characteristic.
+/** @brief Set the {{ chrc.name }} characteristic value.
  *
- *  @param data Pointer to the data to notify.
+ *  @param data Pointer to the data to copy into the value buffer.
+ *  @param len  Number of bytes to copy; must not exceed the value size.
+ *
+ *  @return 0 on success, or a negative error code on failure.
+ */
+int {{ service.name }}_{{ chrc.name }}_set(const uint8_t *data, uint16_t len);
+
+/** @brief Get the {{ chrc.name }} characteristic value.
+ *
+ *  @param data Buffer to receive the value.
+ *  @param len  Number of bytes to copy; must not exceed the value size.
+ *
+ *  @return 0 on success, or a negative error code on failure.
+ */
+int {{ service.name }}_{{ chrc.name }}_get(uint8_t *data, uint16_t len);
+{% if chrc.has_notify() %}
+/** @brief Notify the {{ chrc.name }} characteristic.
+ *
+ *  @param data Pointer to the data to update and notify.
  *  @param len  Length of the data in bytes.
  *
- *  @return 0 on success or a negative error code.
+ *  @return 0 on success, or a negative error code on failure.
  */
 int {{ service.name }}_{{ chrc.name }}_notify(const uint8_t *data, uint16_t len);
 {% endif %}
 {% if chrc.has_indicate() %}
-/** @brief Send an indication for the {{ chrc.name }} characteristic.
+/** @brief Indicate the {{ chrc.name }} characteristic.
  *
- *  @param data Pointer to the data to indicate.
+ *  @param data Pointer to the data to update and indicate.
  *  @param len  Length of the data in bytes.
  *
- *  @return 0 on success or a negative error code.
+ *  @return 0 on success, or a negative error code on failure.
  */
 int {{ service.name }}_{{ chrc.name }}_indicate(const uint8_t *data, uint16_t len);
 {% endif %}

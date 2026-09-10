@@ -1,0 +1,15 @@
+profile:
+  name: gatt_gen_secure
+  services:
+    - name: secure_svc
+      uuid: 12345678-1234-5678-1234-56789abcdef0
+      characteristics:
+        - name: secret
+          uuid: 12345678-1234-5678-1234-56789abcdef1
+          properties:
+            - read
+            - write
+          permissions:
+            - read_encrypt
+            - write_encrypt
+          size: 16

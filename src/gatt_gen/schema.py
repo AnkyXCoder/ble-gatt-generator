@@ -180,6 +180,16 @@ class Profile(BaseModel):
             raise ValueError("At least one service is required")
         return self
 
+    def needs_smp(self) -> bool:
+        """Return True if any characteristic requires encryption or authentication."""
+        for svc in self.services:
+            for chrc in svc.characteristics:
+                for p in chrc.permissions:
+                    if p in ("read_encrypt", "write_encrypt", "read_authen",
+                             "write_authen", "read_lesc", "write_lesc"):
+                        return True
+        return False
+
 
 def load_profile(path: str) -> Profile:
     """Load and validate a YAML profile."""
