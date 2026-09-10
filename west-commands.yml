@@ -1,0 +1,6 @@
+west-commands:
+  - file: src/ble_gatt_generator/west.py
+    commands:
+      - name: gatt-gen
+        class: GattGen
+        help: Generate a Zephyr BLE GATT service from a YAML profile.

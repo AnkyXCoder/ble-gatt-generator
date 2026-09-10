@@ -8,10 +8,23 @@ companion Python/Bleak and Web Bluetooth test clients.
 
 ## Status
 
-This repository is a work in progress. Milestones M1–M4 are complete and build
+This repository is a work in progress. Milestones M1–M5 are complete and build
 for `native_sim` without hardware.
 
+## Installation
+
+```bash
+pip install .
+# or, for local development
+pip install -e .
+```
+
+After installation, the `ble-gatt-generator` CLI and the `west gatt-gen`
+extension command are available.
+
 ## Quick start
+
+### Pip / Python
 
 ```bash
 # From the repo root with the Zephyr tree referenced
@@ -27,6 +40,15 @@ clang-format -i --style=file:$ZEPHYR_BASE/.clang-format \
 # Build the generated sample for native_sim
 cmake -B build -S samples/gatt_gen_minimal -DBOARD=native_sim
 cmake --build build
+```
+
+### West
+
+If `ble-gatt-generator` is part of your west workspace, the extension command is
+registered automatically from `west-commands.yml`:
+
+```bash
+west gatt-gen -i examples/minimal.yaml -o samples/gatt_gen_minimal
 ```
 
 ## Example profile
@@ -101,20 +123,20 @@ bash scripts/ci.sh
 
 ## Features
 
-| Feature                                                          | Status       |
-| ---------------------------------------------------------------- | ------------ |
-| YAML profile schema with Pydantic validation                     | Done         |
-| `BT_GATT_SERVICE_DEFINE` / `BT_GATT_CHARACTERISTIC` generation   | Done         |
-| Read, write, write-without-response, notify, indicate properties | Done         |
-| Security/permission flags including encrypted and authenticated  | Done         |
-| `k_mutex`-protected `get_*` / `set_*` helpers                    | Done         |
-| `BT_GATT_CCC`, `BT_GATT_CUD`, `BT_GATT_CPF`, `BT_GATT_CEP`       | Done         |
-| Generated `*_notify()` and `*_indicate()` helpers                | Done         |
-| `native_sim` build validation                                    | Done         |
-| Python/Bleak test client                                         | Done         |
-| Web Bluetooth test client                                        | Done         |
-| Local CI script and GitHub Actions workflow                      | Done         |
-| `west` extension                                                 | Planned (M5) |
+| Feature                                                          | Status |
+| ---------------------------------------------------------------- | ------ |
+| YAML profile schema with Pydantic validation                     | Done   |
+| `BT_GATT_SERVICE_DEFINE` / `BT_GATT_CHARACTERISTIC` generation   | Done   |
+| Read, write, write-without-response, notify, indicate properties | Done   |
+| Security/permission flags including encrypted and authenticated  | Done   |
+| `k_mutex`-protected `get_*` / `set_*` helpers                    | Done   |
+| `BT_GATT_CCC`, `BT_GATT_CUD`, `BT_GATT_CPF`, `BT_GATT_CEP`       | Done   |
+| Generated `*_notify()` and `*_indicate()` helpers                | Done   |
+| `native_sim` build validation                                    | Done   |
+| Python/Bleak test client                                         | Done   |
+| Web Bluetooth test client                                        | Done   |
+| Local CI script and GitHub Actions workflow                      | Done   |
+| `west` extension                                                 | Done   |
 
 ## Project layout
 
@@ -128,10 +150,12 @@ bash scripts/ci.sh
 │   ├── cli.py
 │   ├── schema.py
 │   ├── generator.py
+│   ├── west.py                    # `west gatt-gen` extension command
 │   └── templates/
 │       ├── clients/               # Bleak + Web Bluetooth client templates
 │       └── zephyr/                # Zephyr C/H and sample templates
 ├── pyproject.toml
+├── west-commands.yml              # West command manifest
 ├── CHANGELOG.md
 └── README.md
 ```

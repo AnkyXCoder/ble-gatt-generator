@@ -40,3 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Added `scripts/ci.sh` to build all `native_sim` samples
   - Added `.github/workflows/ci.yml` for GitHub Actions
   - Verified all three samples pass `scripts/ci.sh`
+- M5: Packaging and west extension
+  - Fixed `pyproject.toml` distribution name and console script
+  - Verified `pip install -e .` and `ble-gatt-generator` CLI
+  - Added `west-commands.yml` and `src/ble_gatt_generator/west.py`
+  - Added optional `west gatt-gen` extension command
