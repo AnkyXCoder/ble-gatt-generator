@@ -124,6 +124,7 @@ def generate(profile: Profile, output_dir: Path, *, force: bool = False) -> list
     """
     zephyr = _make_env("zephyr")
     clients = _make_env("clients")
+    bsim = _make_env("bsim")
     output_dir = Path(output_dir)
     src_dir = output_dir / "src"
     written: list[Path] = []
@@ -154,6 +155,22 @@ def generate(profile: Profile, output_dir: Path, *, force: bool = False) -> list
     ):
         path = output_dir / rel
         if _write(path, clients.get_template(tmpl).render(base_ctx),
+                  force=True, user_owned=False):
+            if mode is not None:
+                path.chmod(mode)
+            written.append(path)
+
+    for tmpl, rel, mode in (
+        ("CMakeLists.txt.j2", "bsim/CMakeLists.txt", None),
+        ("prj.conf.j2", "bsim/prj.conf", None),
+        ("main.c.j2", "bsim/src/main.c", None),
+        ("peripheral.c.j2", "bsim/src/peripheral.c", None),
+        ("central.c.j2", "bsim/src/central.c", None),
+        ("run_test.sh.j2", "bsim/run_test.sh", 0o755),
+        ("testcase.yaml.j2", "bsim/testcase.yaml", None),
+    ):
+        path = output_dir / rel
+        if _write(path, bsim.get_template(tmpl).render(base_ctx),
                   force=True, user_owned=False):
             if mode is not None:
                 path.chmod(mode)

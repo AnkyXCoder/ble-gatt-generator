@@ -71,3 +71,35 @@ jobs:
         env:
           PYTHON_EXECUTABLE: python3
         run: bash scripts/ci.sh
+
+  bsim-self-tests:
+    name: BabbleSim self-tests (nrf52_bsim)
+    runs-on: ubuntu-latest
+    container: ghcr.io/zephyrproject-rtos/ci:v0.27.4
+    env:
+      ZEPHYR_BASE: ${{ github.workspace }}/zephyrproject/zephyr
+      ZEPHYR_SDK_INSTALL_DIR: /opt/toolchains/zephyr-sdk-0.17.0
+      BSIM_OUT_PATH: ${{ github.workspace }}/zephyrproject/tools/bsim
+      BSIM_COMPONENTS_PATH: ${{ github.workspace }}/zephyrproject/tools/bsim/components
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ble-gatt-generator
+
+      - name: Initialise a Zephyr workspace with BabbleSim
+        run: |
+          west init -m https://github.com/zephyrproject-rtos/zephyr --mr v4.1.0 zephyrproject
+          cd zephyrproject
+          west config manifest.group-filter -- +babblesim
+          west update --narrow -o=--depth=1
+          pip install -r zephyr/scripts/requirements-base.txt
+
+      - name: Build BabbleSim components
+        run: make -C zephyrproject/tools/bsim everything -j$(nproc)
+
+      - name: Install generator
+        run: pip install -e ble-gatt-generator
+
+      - name: Run generated self-tests
+        working-directory: ble-gatt-generator
+        run: bash scripts/test_bsim.sh

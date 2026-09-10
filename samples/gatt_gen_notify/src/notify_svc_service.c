@@ -108,8 +108,8 @@ int notify_svc_led_get(uint8_t *data, uint16_t len)
 /* GATT attribute callbacks                                                  */
 /* ------------------------------------------------------------------------- */
 
-static ssize_t notify_svc_button_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
-				      void *buf, uint16_t len, uint16_t offset)
+static ssize_t notify_svc_button_read(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
+			       uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
 
@@ -125,11 +125,12 @@ static void notify_svc_button_ccc_cfg_changed(const struct bt_gatt_attr *attr, u
 {
 	ARG_UNUSED(attr);
 
-	printk("button notifications %s\n", value == BT_GATT_CCC_NOTIFY ? "enabled" : "disabled");
+	printk("button notifications %s\n",
+	       value == BT_GATT_CCC_NOTIFY ? "enabled" : "disabled");
 }
 
 static ssize_t notify_svc_led_read(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
-				   uint16_t len, uint16_t offset)
+			       uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
 
@@ -142,7 +143,7 @@ static ssize_t notify_svc_led_read(struct bt_conn *conn, const struct bt_gatt_at
 }
 
 static ssize_t notify_svc_led_write(struct bt_conn *conn, const struct bt_gatt_attr *attr,
-				    const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
+				const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
 {
 	ARG_UNUSED(conn);
 	ARG_UNUSED(attr);
@@ -188,8 +189,8 @@ int notify_svc_button_notify(const uint8_t *data, uint16_t len)
 		return err;
 	}
 
-	return bt_gatt_notify_uuid(NULL, NOTIFY_SVC_BUTTON_UUID, NULL, notify_svc_button_value,
-				   len);
+	return bt_gatt_notify_uuid(NULL, NOTIFY_SVC_BUTTON_UUID, NULL,
+				   notify_svc_button_value, len);
 }
 
 /* ------------------------------------------------------------------------- */

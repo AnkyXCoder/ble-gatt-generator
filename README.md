@@ -9,9 +9,14 @@ Describe your GATT profile once in YAML and get:
 * a buildable Zephyr sample (`main.c`, `prj.conf`, `CMakeLists.txt`,
   `sample.yaml`) that you own and can edit freely;
 * a Python/Bleak test client and a Web Bluetooth page that already know every
-  UUID, so you can verify the peripheral without writing client code.
+  UUID, so you can verify the peripheral without writing client code;
+* a two-device [BabbleSim](https://babblesim.github.io/) self-test under
+  `bsim/` that connects a generated central to the generated services and
+  verifies discovery, reads, write/read-back and notifications on
+  `nrf52_bsim` — real BLE traffic, no hardware.
 
-Everything is verified on `native_sim`, so no hardware is needed for CI.
+Everything is verified on `native_sim` (build) and `nrf52_bsim`
+(end-to-end over a simulated radio), so no hardware is needed for CI.
 
 ## Installation
 
@@ -64,6 +69,7 @@ Generated files fall into two groups:
 | `src/<service>_service.c`           | `src/main.c`                                  |
 | `src/<service>_service.h`           | `prj.conf`                                    |
 | `test_client.py`, `web_client.html` | `CMakeLists.txt`, `sample.yaml`               |
+| `bsim/` (whole directory)           |                                               |
 
 Put your application logic in `main.c` or your own sources and talk to the
 service through the generated API. Re-running the generator after a YAML change
@@ -93,6 +99,39 @@ characteristics, and exits non-zero on any mismatch — suitable for scripting.
 
 `web_client.html` offers the same operations from a Chromium-based browser
 (must be served over `https://` or `http://localhost`).
+
+### Hardware-free end-to-end test (`bsim/`)
+
+Each generated output contains a `bsim/` BabbleSim self-test. One binary
+plays both roles: the `peripheral` device advertises and serves the generated
+GATT services, the `central` device scans, connects, discovers every
+characteristic by UUID, reads back readable values, writes and verifies
+writable ones, subscribes to every CCC, and counts the notifications the
+peripheral then pushes.
+
+```bash
+# One-time: fetch and build BabbleSim in your west workspace
+cd <west-workspace>
+west config manifest.group-filter -- +babblesim
+west update
+make -C tools/bsim everything -j$(nproc)
+
+# Then, from anywhere with ZEPHYR_BASE set:
+export ZEPHYR_BASE=/path/to/zephyr
+my_app/bsim/run_test.sh            # builds the test binary on first run
+my_app/bsim/run_test.sh --rebuild  # force a rebuild
+```
+
+The script exits non-zero on failure and both devices print `passed` on
+success. `bsim/testcase.yaml` is Twister-compatible (`harness: bsim`,
+`build_only`), so the test app also builds in `west twister` runs on
+`nrf52_bsim`. `scripts/test_bsim.sh` runs the self-test for every sample in
+this repository, and CI does the same.
+
+Characteristics with `read_authen`/`write_authen`/`read_lesc`/`write_lesc`
+permissions request `BT_SECURITY_L3`/`L4` pairing in the test; the plain
+`*_encrypt` permissions use just-works pairing to `BT_SECURITY_L2`, which the
+simulated link supports out of the box.
 
 ## Profile reference
 
@@ -176,6 +215,7 @@ descriptor tables are generated for you.
 ├── samples/                    # Generated samples (kept in sync by CI)
 ├── scripts/
 │   ├── ci.sh                   # Build every sample for native_sim
+│   ├── test_bsim.sh            # Build + run every sample's BabbleSim self-test
 │   └── regen_samples.sh        # Regenerate + clang-format all samples
 ├── src/ble_gatt_generator/
 │   ├── cli.py                  # click entry point
@@ -184,7 +224,8 @@ descriptor tables are generated for you.
 │   ├── west.py                 # `west gatt-gen` command
 │   └── templates/
 │       ├── zephyr/             # service.c/h, main.c, prj.conf, CMake, sample.yaml
-│       └── clients/            # Bleak client, Web Bluetooth page
+│       ├── clients/            # Bleak client, Web Bluetooth page
+│       └── bsim/               # BabbleSim two-device self-test
 ├── tests/                      # pytest suite (schema + generator)
 ├── west-commands.yml
 ├── pyproject.toml
@@ -196,16 +237,18 @@ descriptor tables are generated for you.
 
 ```bash
 pip install -e ".[dev]"
-pytest -q                                              # 36 unit tests, no Zephyr needed
+pytest -q                                              # unit tests, no Zephyr needed
 
 export ZEPHYR_BASE=/path/to/zephyr
 export PYTHON_EXECUTABLE=$(which python)               # one with Zephyr's requirements
 bash scripts/regen_samples.sh                          # after editing templates
 bash scripts/ci.sh                                     # build all samples for native_sim
+bash scripts/test_bsim.sh                              # needs a compiled BabbleSim
 ```
 
 `.github/workflows/ci.yml` runs the unit tests, checks that `samples/` match
-the templates, and builds every sample for `native_sim`.
+the templates, builds every sample for `native_sim`, and runs the generated
+BabbleSim self-tests on `nrf52_bsim`.
 
 ## Feature status
 
@@ -222,8 +265,8 @@ the templates, and builds every sample for `native_sim`.
 | Python/Bleak and Web Bluetooth test clients (multi-service)    | Done    |
 | `west gatt-gen` extension                                      | Done    |
 | Unit tests + `native_sim` CI                                   | Done    |
+| BabbleSim two-device self-tests (`bsim/`, `nrf52_bsim`)        | Done    |
 | Included services, multiple notify targets per connection      | Planned |
-| BabbleSim end-to-end tests                                     | Planned |
 
 ## License
 

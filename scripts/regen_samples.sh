@@ -10,11 +10,11 @@ CLANG_FORMAT="${CLANG_FORMAT:-clang-format}"
 cd "$(dirname "$0")/.."
 
 for example in examples/*.yaml; do
-    name=$(basename "$example" .yaml)
-    out="samples/gatt_gen_$name"
-    echo "Regenerating $out from $example ..."
-    PYTHONPATH=src "$PYTHON" -m ble_gatt_generator.cli -i "$example" -o "$out" --force
-    "$CLANG_FORMAT" -i --style="file:$ZEPHYR_BASE/.clang-format" "$out"/src/*.c "$out"/src/*.h
+	name=$(basename "$example" .yaml)
+	out="samples/gatt_gen_$name"
+	echo "Regenerating $out from $example ..."
+	PYTHONPATH=src "$PYTHON" -m ble_gatt_generator.cli -i "$example" -o "$out" --force
+	"$CLANG_FORMAT" -i --style="file:$ZEPHYR_BASE/.clang-format" "$out"/src/*.c "$out"/src/*.h "$out"/bsim/src/*.c
 done
 
 echo "Samples regenerated."

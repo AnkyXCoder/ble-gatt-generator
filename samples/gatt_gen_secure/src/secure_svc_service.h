@@ -27,10 +27,8 @@ extern "C" {
  */
 
 /* Service and characteristic UUIDs. */
-#define SECURE_SVC_UUID                                                                            \
-	BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0))
-#define SECURE_SVC_SECRET_UUID                                                                     \
-	BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef1))
+#define SECURE_SVC_UUID BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0))
+#define SECURE_SVC_SECRET_UUID BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef1))
 
 /* Characteristic value sizes in bytes. */
 #define SECURE_SVC_SECRET_SIZE 16

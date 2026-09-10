@@ -38,7 +38,8 @@ def test_uuid_macro_16_and_128():
 
 def test_ad_uuid_type():
     assert _ad_uuid_type("180f") == "BT_DATA_UUID16_ALL"
-    assert _ad_uuid_type("12345678-1234-5678-1234-56789abcdef0") == "BT_DATA_UUID128_ALL"
+    assert _ad_uuid_type(
+        "12345678-1234-5678-1234-56789abcdef0") == "BT_DATA_UUID128_ALL"
 
 
 def test_client_uuid_expands_16_bit():
@@ -59,8 +60,16 @@ def test_generate_writes_expected_files(tmp_path, notify_profile):
         "sample.yaml",
         "test_client.py",
         "web_client.html",
+        "bsim/CMakeLists.txt",
+        "bsim/prj.conf",
+        "bsim/testcase.yaml",
+        "bsim/run_test.sh",
+        "bsim/src/main.c",
+        "bsim/src/peripheral.c",
+        "bsim/src/central.c",
     }
     assert (tmp_path / "test_client.py").stat().st_mode & 0o111
+    assert (tmp_path / "bsim/run_test.sh").stat().st_mode & 0o111
 
 
 def test_user_owned_files_not_clobbered(tmp_path, notify_profile):
@@ -139,3 +148,73 @@ def test_generated_c_has_no_tabs_after_spaces_mix(tmp_path, notify_profile):
     c = (tmp_path / "src/notify_svc_service.c").read_text()
     for line in c.splitlines():
         assert not re.match(r"^ +\t", line), line
+
+
+def test_bsim_artifacts_cover_every_characteristic(tmp_path, notify_profile):
+    generate(notify_profile, tmp_path)
+    central = (tmp_path / "bsim/src/central.c").read_text()
+    peripheral = (tmp_path / "bsim/src/peripheral.c").read_text()
+
+    for svc in notify_profile.services:
+        for chrc in svc.characteristics:
+            base = f"{svc.name}_{chrc.name}"
+            assert f"{base}_handle = discover_chrc(" in central
+            if chrc.has_read():
+                assert f"read_chrc({base}_handle)" in central
+            if chrc.has_write():
+                assert f"{base}_handle, pattern" in central
+            if chrc.needs_ccc():
+                assert f"{base}_sub.value_handle" in central
+                assert f"{base}_received" in central
+            if chrc.has_notify():
+                assert f"{base}_notify(payload" in peripheral
+            if chrc.has_indicate():
+                assert f"{base}_indicate(payload" in peripheral
+
+    # Both roles registered for the same binary.
+    main_c = (tmp_path / "bsim/src/main.c").read_text()
+    assert "test_peripheral_install" in main_c
+    assert "test_central_install" in main_c
+    assert 'test_id = "peripheral"' in peripheral
+    assert 'test_id = "central"' in central
+
+
+def test_bsim_testcase_and_run_script(tmp_path, notify_profile):
+    generate(notify_profile, tmp_path)
+    testcase = (tmp_path / "bsim/testcase.yaml").read_text()
+    run = (tmp_path / "bsim/run_test.sh").read_text()
+
+    assert "harness: bsim" in testcase
+    assert "nrf52_bsim/native" in testcase
+    assert "bsim_exe_name: gatt_gen_gatt_gen_notify_selftest" in testcase
+    assert "bs_nrf52_bsim_native_gatt_gen_gatt_gen_notify_selftest" in run
+    assert "-testid=central" in run and "-testid=peripheral" in run
+    assert "bs_2G4_phy_v1" in run
+
+
+def test_bsim_prj_conf_security(tmp_path, notify_profile, secure_profile):
+    generate(notify_profile, tmp_path / "a")
+    generate(secure_profile, tmp_path / "b")
+
+    conf_a = (tmp_path / "a/bsim/prj.conf").read_text()
+    conf_b = (tmp_path / "b/bsim/prj.conf").read_text()
+    central_b = (tmp_path / "b/bsim/src/central.c").read_text()
+
+    for conf in (conf_a, conf_b):
+        assert "CONFIG_BT_CENTRAL=y" in conf
+        assert "CONFIG_BT_PERIPHERAL=y" in conf
+        assert "CONFIG_BT_GATT_CLIENT=y" in conf
+        assert "CONFIG_BT_GATT_AUTO_DISCOVER_CCC=y" in conf
+
+    assert "CONFIG_BT_SMP" not in conf_a
+    assert "CONFIG_BT_SMP=y" in conf_b
+    assert "bt_conn_set_security" in central_b
+    assert "BT_SECURITY_L2" in central_b
+
+
+def test_bsim_no_ccc_profile_has_no_subscription(tmp_path):
+    profile = load_profile(str(EXAMPLES / "minimal.yaml"))
+    generate(profile, tmp_path)
+    central = (tmp_path / "bsim/src/central.c").read_text()
+    assert "bt_gatt_subscribe" not in central
+    assert "_subscribed" not in central

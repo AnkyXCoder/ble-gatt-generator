@@ -251,6 +251,28 @@ class Profile(BaseModel):
             for chrc in svc.characteristics
         )
 
+    def required_security(self) -> str:
+        """Return the bt_security_t level needed by the strictest permission."""
+        perms = {
+            perm
+            for svc in self.services
+            for chrc in svc.characteristics
+            for perm in chrc.permissions
+        }
+        if perms & {"read_lesc", "write_lesc"}:
+            return "BT_SECURITY_L4"
+        if perms & {"read_authen", "write_authen"}:
+            return "BT_SECURITY_L3"
+        return "BT_SECURITY_L2"
+
+    def any_ccc(self) -> bool:
+        """Return True if any characteristic supports notify or indicate."""
+        return any(
+            chrc.needs_ccc()
+            for svc in self.services
+            for chrc in svc.characteristics
+        )
+
 
 def load_profile(path: str) -> Profile:
     """Load and validate a YAML profile."""

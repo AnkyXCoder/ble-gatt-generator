@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- M6: BabbleSim self-test generation
+  - Every generated output gains a `bsim/` directory with a two-device
+    `nrf52_bsim` self-test: the `peripheral` role runs the generated GATT
+    services and pushes notifications/indications, the `central` role scans,
+    connects, discovers every characteristic by UUID, verifies reads,
+    write/read-back and CCC subscriptions, and counts incoming values
+  - Devices coordinate over the `babblekit` backchannel (`bk_sync`), so the
+    test needs no external orchestration; `bsim/run_test.sh` builds the binary
+    on first run and launches the 2-device simulation
+  - Twister-compatible `bsim/testcase.yaml` (`harness: bsim`, `build_only`)
+  - `scripts/test_bsim.sh` runs the self-test for every sample; a
+    `bsim-self-tests` CI job fetches/builds BabbleSim and runs it
+  - Profiles with encrypted/authenticated permissions pair to the required
+    `BT_SECURITY_L2`–`L4` level before exercising the attributes
+  - `Profile.required_security()` and `Profile.any_ccc()` schema helpers
+
 ### Changed
 
 - Renamed the project and package from `zephyr-gatt-gen` / `gatt_gen` to
