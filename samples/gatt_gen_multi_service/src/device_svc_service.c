@@ -58,12 +58,15 @@ int device_svc_device_name_set(const uint8_t *data, uint16_t len)
 
 int device_svc_device_name_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(device_svc_device_name_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(device_svc_device_name_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&device_svc_device_name_lock, K_FOREVER);
-	memcpy(data, device_svc_device_name_value, len);
+	memcpy(data, device_svc_device_name_value, MIN(len, sizeof(device_svc_device_name_value)));
 	k_mutex_unlock(&device_svc_device_name_lock);
 
 	return 0;
@@ -84,12 +87,15 @@ int device_svc_reboot_set(const uint8_t *data, uint16_t len)
 
 int device_svc_reboot_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(device_svc_reboot_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(device_svc_reboot_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&device_svc_reboot_lock, K_FOREVER);
-	memcpy(data, device_svc_reboot_value, len);
+	memcpy(data, device_svc_reboot_value, MIN(len, sizeof(device_svc_reboot_value)));
 	k_mutex_unlock(&device_svc_reboot_lock);
 
 	return 0;
@@ -110,12 +116,15 @@ int device_svc_event_flag_set(const uint8_t *data, uint16_t len)
 
 int device_svc_event_flag_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(device_svc_event_flag_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(device_svc_event_flag_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&device_svc_event_flag_lock, K_FOREVER);
-	memcpy(data, device_svc_event_flag_value, len);
+	memcpy(data, device_svc_event_flag_value, MIN(len, sizeof(device_svc_event_flag_value)));
 	k_mutex_unlock(&device_svc_event_flag_lock);
 
 	return 0;
@@ -129,6 +138,8 @@ static ssize_t device_svc_device_name_read(struct bt_conn *conn, const struct bt
 					   void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	device_svc_device_name_on_read();
 
 	k_mutex_lock(&device_svc_device_name_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, device_svc_device_name_value,
@@ -165,20 +176,32 @@ static ssize_t device_svc_reboot_write(struct bt_conn *conn, const struct bt_gat
 
 static void device_svc_event_flag_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == BT_GATT_CCC_NOTIFY;
+
 	ARG_UNUSED(attr);
 
-	printk("event_flag notifications %s\n",
-	       value == BT_GATT_CCC_NOTIFY ? "enabled" : "disabled");
+	printk("event_flag notifications %s\n", enabled ? "enabled" : "disabled");
+
+	device_svc_event_flag_on_ccc(enabled);
 }
 
 /* ------------------------------------------------------------------------- */
 /* Application hooks (weak defaults; override in your own sources)           */
 /* ------------------------------------------------------------------------- */
 
+__weak void device_svc_device_name_on_read(void)
+{
+}
+
 __weak void device_svc_reboot_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);
 	ARG_UNUSED(len);
+}
+
+__weak void device_svc_event_flag_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
 }
 
 /* ------------------------------------------------------------------------- */

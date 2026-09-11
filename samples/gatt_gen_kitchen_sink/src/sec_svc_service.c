@@ -68,12 +68,15 @@ int sec_svc_enc_read_set(const uint8_t *data, uint16_t len)
 
 int sec_svc_enc_read_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(sec_svc_enc_read_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(sec_svc_enc_read_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&sec_svc_enc_read_lock, K_FOREVER);
-	memcpy(data, sec_svc_enc_read_value, len);
+	memcpy(data, sec_svc_enc_read_value, MIN(len, sizeof(sec_svc_enc_read_value)));
 	k_mutex_unlock(&sec_svc_enc_read_lock);
 
 	return 0;
@@ -94,12 +97,15 @@ int sec_svc_enc_write_set(const uint8_t *data, uint16_t len)
 
 int sec_svc_enc_write_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(sec_svc_enc_write_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(sec_svc_enc_write_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&sec_svc_enc_write_lock, K_FOREVER);
-	memcpy(data, sec_svc_enc_write_value, len);
+	memcpy(data, sec_svc_enc_write_value, MIN(len, sizeof(sec_svc_enc_write_value)));
 	k_mutex_unlock(&sec_svc_enc_write_lock);
 
 	return 0;
@@ -120,12 +126,15 @@ int sec_svc_enc_rw_set(const uint8_t *data, uint16_t len)
 
 int sec_svc_enc_rw_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(sec_svc_enc_rw_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(sec_svc_enc_rw_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&sec_svc_enc_rw_lock, K_FOREVER);
-	memcpy(data, sec_svc_enc_rw_value, len);
+	memcpy(data, sec_svc_enc_rw_value, MIN(len, sizeof(sec_svc_enc_rw_value)));
 	k_mutex_unlock(&sec_svc_enc_rw_lock);
 
 	return 0;
@@ -146,12 +155,15 @@ int sec_svc_auth_read_set(const uint8_t *data, uint16_t len)
 
 int sec_svc_auth_read_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(sec_svc_auth_read_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(sec_svc_auth_read_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&sec_svc_auth_read_lock, K_FOREVER);
-	memcpy(data, sec_svc_auth_read_value, len);
+	memcpy(data, sec_svc_auth_read_value, MIN(len, sizeof(sec_svc_auth_read_value)));
 	k_mutex_unlock(&sec_svc_auth_read_lock);
 
 	return 0;
@@ -172,12 +184,15 @@ int sec_svc_auth_rw_set(const uint8_t *data, uint16_t len)
 
 int sec_svc_auth_rw_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(sec_svc_auth_rw_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(sec_svc_auth_rw_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&sec_svc_auth_rw_lock, K_FOREVER);
-	memcpy(data, sec_svc_auth_rw_value, len);
+	memcpy(data, sec_svc_auth_rw_value, MIN(len, sizeof(sec_svc_auth_rw_value)));
 	k_mutex_unlock(&sec_svc_auth_rw_lock);
 
 	return 0;
@@ -198,12 +213,15 @@ int sec_svc_lesc_rw_set(const uint8_t *data, uint16_t len)
 
 int sec_svc_lesc_rw_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(sec_svc_lesc_rw_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(sec_svc_lesc_rw_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&sec_svc_lesc_rw_lock, K_FOREVER);
-	memcpy(data, sec_svc_lesc_rw_value, len);
+	memcpy(data, sec_svc_lesc_rw_value, MIN(len, sizeof(sec_svc_lesc_rw_value)));
 	k_mutex_unlock(&sec_svc_lesc_rw_lock);
 
 	return 0;
@@ -224,12 +242,15 @@ int sec_svc_enc_notify_set(const uint8_t *data, uint16_t len)
 
 int sec_svc_enc_notify_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(sec_svc_enc_notify_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(sec_svc_enc_notify_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&sec_svc_enc_notify_lock, K_FOREVER);
-	memcpy(data, sec_svc_enc_notify_value, len);
+	memcpy(data, sec_svc_enc_notify_value, MIN(len, sizeof(sec_svc_enc_notify_value)));
 	k_mutex_unlock(&sec_svc_enc_notify_lock);
 
 	return 0;
@@ -250,12 +271,15 @@ int sec_svc_auth_indicate_set(const uint8_t *data, uint16_t len)
 
 int sec_svc_auth_indicate_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(sec_svc_auth_indicate_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(sec_svc_auth_indicate_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&sec_svc_auth_indicate_lock, K_FOREVER);
-	memcpy(data, sec_svc_auth_indicate_value, len);
+	memcpy(data, sec_svc_auth_indicate_value, MIN(len, sizeof(sec_svc_auth_indicate_value)));
 	k_mutex_unlock(&sec_svc_auth_indicate_lock);
 
 	return 0;
@@ -269,6 +293,8 @@ static ssize_t sec_svc_enc_read_read(struct bt_conn *conn, const struct bt_gatt_
 				     void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	sec_svc_enc_read_on_read();
 
 	k_mutex_lock(&sec_svc_enc_read_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, sec_svc_enc_read_value,
@@ -308,6 +334,8 @@ static ssize_t sec_svc_enc_rw_read(struct bt_conn *conn, const struct bt_gatt_at
 {
 	ssize_t ret;
 
+	sec_svc_enc_rw_on_read();
+
 	k_mutex_lock(&sec_svc_enc_rw_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, sec_svc_enc_rw_value,
 				sizeof(sec_svc_enc_rw_value));
@@ -345,6 +373,8 @@ static ssize_t sec_svc_auth_read_read(struct bt_conn *conn, const struct bt_gatt
 {
 	ssize_t ret;
 
+	sec_svc_auth_read_on_read();
+
 	k_mutex_lock(&sec_svc_auth_read_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, sec_svc_auth_read_value,
 				sizeof(sec_svc_auth_read_value));
@@ -357,6 +387,8 @@ static ssize_t sec_svc_auth_rw_read(struct bt_conn *conn, const struct bt_gatt_a
 				    void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	sec_svc_auth_rw_on_read();
 
 	k_mutex_lock(&sec_svc_auth_rw_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, sec_svc_auth_rw_value,
@@ -395,6 +427,8 @@ static ssize_t sec_svc_lesc_rw_read(struct bt_conn *conn, const struct bt_gatt_a
 {
 	ssize_t ret;
 
+	sec_svc_lesc_rw_on_read();
+
 	k_mutex_lock(&sec_svc_lesc_rw_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, sec_svc_lesc_rw_value,
 				sizeof(sec_svc_lesc_rw_value));
@@ -432,6 +466,8 @@ static ssize_t sec_svc_enc_notify_read(struct bt_conn *conn, const struct bt_gat
 {
 	ssize_t ret;
 
+	sec_svc_enc_notify_on_read();
+
 	k_mutex_lock(&sec_svc_enc_notify_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, sec_svc_enc_notify_value,
 				sizeof(sec_svc_enc_notify_value));
@@ -442,16 +478,21 @@ static ssize_t sec_svc_enc_notify_read(struct bt_conn *conn, const struct bt_gat
 
 static void sec_svc_enc_notify_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == BT_GATT_CCC_NOTIFY;
+
 	ARG_UNUSED(attr);
 
-	printk("enc_notify notifications %s\n",
-	       value == BT_GATT_CCC_NOTIFY ? "enabled" : "disabled");
+	printk("enc_notify notifications %s\n", enabled ? "enabled" : "disabled");
+
+	sec_svc_enc_notify_on_ccc(enabled);
 }
 
 static ssize_t sec_svc_auth_indicate_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 					  void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	sec_svc_auth_indicate_on_read();
 
 	k_mutex_lock(&sec_svc_auth_indicate_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, sec_svc_auth_indicate_value,
@@ -463,15 +504,22 @@ static ssize_t sec_svc_auth_indicate_read(struct bt_conn *conn, const struct bt_
 
 static void sec_svc_auth_indicate_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == BT_GATT_CCC_INDICATE;
+
 	ARG_UNUSED(attr);
 
-	printk("auth_indicate indications %s\n",
-	       value == BT_GATT_CCC_INDICATE ? "enabled" : "disabled");
+	printk("auth_indicate indications %s\n", enabled ? "enabled" : "disabled");
+
+	sec_svc_auth_indicate_on_ccc(enabled);
 }
 
 /* ------------------------------------------------------------------------- */
 /* Application hooks (weak defaults; override in your own sources)           */
 /* ------------------------------------------------------------------------- */
+
+__weak void sec_svc_enc_read_on_read(void)
+{
+}
 
 __weak void sec_svc_enc_write_on_write(const uint8_t *data, uint16_t len)
 {
@@ -479,22 +527,51 @@ __weak void sec_svc_enc_write_on_write(const uint8_t *data, uint16_t len)
 	ARG_UNUSED(len);
 }
 
+__weak void sec_svc_enc_rw_on_read(void)
+{
+}
 __weak void sec_svc_enc_rw_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);
 	ARG_UNUSED(len);
 }
 
+__weak void sec_svc_auth_read_on_read(void)
+{
+}
+
+__weak void sec_svc_auth_rw_on_read(void)
+{
+}
 __weak void sec_svc_auth_rw_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);
 	ARG_UNUSED(len);
 }
 
+__weak void sec_svc_lesc_rw_on_read(void)
+{
+}
 __weak void sec_svc_lesc_rw_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);
 	ARG_UNUSED(len);
+}
+
+__weak void sec_svc_enc_notify_on_read(void)
+{
+}
+__weak void sec_svc_enc_notify_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
+}
+
+__weak void sec_svc_auth_indicate_on_read(void)
+{
+}
+__weak void sec_svc_auth_indicate_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
 }
 
 /* ------------------------------------------------------------------------- */

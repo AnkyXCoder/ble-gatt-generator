@@ -13,6 +13,7 @@
 #ifndef {{ service.name | c_guard }}
 #define {{ service.name | c_guard }}
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <zephyr/bluetooth/uuid.h>
@@ -59,9 +60,30 @@ int {{ base }}_set(const uint8_t *data, uint16_t len);
  *              {{ service.name | upper }}_{{ chrc.name | upper }}_SIZE.
  *
  *  @retval 0 on success.
- *  @retval -EINVAL if @p data is NULL or @p len is too large.
+ *  @retval -EINVAL if @p data is NULL{% if not chrc.variable %} or @p len is too large{% endif %}.
  */
 int {{ base }}_get(uint8_t *data, uint16_t len);
+{% if chrc.variable %}
+
+/** @brief Current length of the {{ chrc.name }} characteristic value.
+ *
+ *  Only generated for @c variable characteristics; reflects the last written
+ *  length rather than the buffer size.
+ *
+ *  @return Number of valid bytes in the value buffer.
+ */
+uint16_t {{ base }}_len(void);
+{% endif %}
+{% if chrc.has_read() %}
+
+/** @brief Application hook called before a peer reads {{ chrc.name }}.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void {{ base }}_on_read(void);
+{% endif %}
 {% if chrc.has_write() %}
 
 /** @brief Application hook called after a peer writes {{ chrc.name }}.
@@ -96,6 +118,18 @@ int {{ base }}_notify(const uint8_t *data, uint16_t len);
  *  @return 0 on success, or a negative error code (see bt_gatt_indicate()).
  */
 int {{ base }}_indicate(const uint8_t *data, uint16_t len);
+{% endif %}
+{% if chrc.needs_ccc() %}
+
+/** @brief Application hook called when {{ chrc.name }} CCC state changes.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to react to a peer enabling/disabling
+ *  {{ 'notifications' if chrc.has_notify() else 'indications' }}.
+ *
+ *  @param enabled True when {{ 'notifications' if chrc.has_notify() else 'indications' }} were enabled.
+ */
+void {{ base }}_on_ccc(bool enabled);
 {% endif %}
 
 {% endfor %}

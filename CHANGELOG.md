@@ -34,6 +34,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `min(size, mtu-1)` bytes and writes are capped at `mtu-3` with partial
   read-back comparison
 
+- Generation scope flags: `--services-only` emits only
+  `src/<service>_service.[ch]`; `--no-clients`/`--no-bsim` skip those
+  artifact groups (same flags on `west gatt-gen`)
+- `initial_value` characteristic field (`0x…` hex or string) initialises the
+  value buffer
+- `variable` characteristic field tracks the actual written length and adds a
+  `_len()` helper; reads serve the current length
+- Weak application hooks for every characteristic: `_on_read()` before reads
+  and `_on_ccc(enabled)` on CCC state changes (joining `_on_write()`)
+- `role: peripheral|central|both` profile field (peripheral default); drives
+  the generated Kconfig set
+- Computed minimal-Kconfig report: `prj.conf` now carries the required
+  symbols with advisory settings as comments, and `KCONFIG_NOTES.md`
+  explains each requirement (MTU, SMP level, prepare-write buffers, signing,
+  CCC persistence)
+- `export-schema` subcommand dumps a JSON Schema of the profile format for
+  editor validation
+- 16-bit UUIDs on custom services/characteristics produce a warning about
+  the SIG-assigned UUID range
+
 ### Changed
 
 - `scripts/ci.sh` now builds every directory under `samples/` instead of a

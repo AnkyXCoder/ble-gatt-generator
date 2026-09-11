@@ -13,6 +13,7 @@
 #ifndef BLE_GATT_GENERATOR_DEVICE_SVC_H_
 #define BLE_GATT_GENERATOR_DEVICE_SVC_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <zephyr/bluetooth/uuid.h>
@@ -64,6 +65,14 @@ int device_svc_device_name_set(const uint8_t *data, uint16_t len);
  *  @retval -EINVAL if @p data is NULL or @p len is too large.
  */
 int device_svc_device_name_get(uint8_t *data, uint16_t len);
+
+/** @brief Application hook called before a peer reads device_name.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void device_svc_device_name_on_read(void);
 
 /** @brief Set the reboot characteristic value.
  *
@@ -132,6 +141,16 @@ int device_svc_event_flag_get(uint8_t *data, uint16_t len);
  *  @return 0 on success, or a negative error code (see bt_gatt_notify_uuid()).
  */
 int device_svc_event_flag_notify(const uint8_t *data, uint16_t len);
+
+/** @brief Application hook called when event_flag CCC state changes.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to react to a peer enabling/disabling
+ *  notifications.
+ *
+ *  @param enabled True when notifications were enabled.
+ */
+void device_svc_event_flag_on_ccc(bool enabled);
 
 /** @} */
 

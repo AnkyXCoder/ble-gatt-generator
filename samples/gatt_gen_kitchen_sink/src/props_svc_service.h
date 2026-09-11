@@ -13,6 +13,7 @@
 #ifndef BLE_GATT_GENERATOR_PROPS_SVC_H_
 #define BLE_GATT_GENERATOR_PROPS_SVC_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <zephyr/bluetooth/uuid.h>
@@ -100,6 +101,14 @@ int props_svc_read_only_set(const uint8_t *data, uint16_t len);
  *  @retval -EINVAL if @p data is NULL or @p len is too large.
  */
 int props_svc_read_only_get(uint8_t *data, uint16_t len);
+
+/** @brief Application hook called before a peer reads read_only.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void props_svc_read_only_on_read(void);
 
 /** @brief Set the write_only characteristic value.
  *
@@ -195,6 +204,14 @@ int props_svc_read_write_set(const uint8_t *data, uint16_t len);
  */
 int props_svc_read_write_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads read_write.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void props_svc_read_write_on_read(void);
+
 /** @brief Application hook called after a peer writes read_write.
  *
  *  Defined as a weak no-op in the generated source. Define this function in
@@ -239,6 +256,16 @@ int props_svc_notify_only_get(uint8_t *data, uint16_t len);
  */
 int props_svc_notify_only_notify(const uint8_t *data, uint16_t len);
 
+/** @brief Application hook called when notify_only CCC state changes.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to react to a peer enabling/disabling
+ *  notifications.
+ *
+ *  @param enabled True when notifications were enabled.
+ */
+void props_svc_notify_only_on_ccc(bool enabled);
+
 /** @brief Set the indicate_only characteristic value.
  *
  *  Thread-safe when @c thread_safe is enabled for this characteristic.
@@ -272,6 +299,16 @@ int props_svc_indicate_only_get(uint8_t *data, uint16_t len);
  */
 int props_svc_indicate_only_indicate(const uint8_t *data, uint16_t len);
 
+/** @brief Application hook called when indicate_only CCC state changes.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to react to a peer enabling/disabling
+ *  indications.
+ *
+ *  @param enabled True when indications were enabled.
+ */
+void props_svc_indicate_only_on_ccc(bool enabled);
+
 /** @brief Set the read_notify characteristic value.
  *
  *  Thread-safe when @c thread_safe is enabled for this characteristic.
@@ -296,6 +333,14 @@ int props_svc_read_notify_set(const uint8_t *data, uint16_t len);
  */
 int props_svc_read_notify_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads read_notify.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void props_svc_read_notify_on_read(void);
+
 /** @brief Update and notify the read_notify characteristic.
  *
  *  @param data Pointer to the new value.
@@ -304,6 +349,16 @@ int props_svc_read_notify_get(uint8_t *data, uint16_t len);
  *  @return 0 on success, or a negative error code (see bt_gatt_notify_uuid()).
  */
 int props_svc_read_notify_notify(const uint8_t *data, uint16_t len);
+
+/** @brief Application hook called when read_notify CCC state changes.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to react to a peer enabling/disabling
+ *  notifications.
+ *
+ *  @param enabled True when notifications were enabled.
+ */
+void props_svc_read_notify_on_ccc(bool enabled);
 
 /** @brief Set the read_indicate characteristic value.
  *
@@ -329,6 +384,14 @@ int props_svc_read_indicate_set(const uint8_t *data, uint16_t len);
  */
 int props_svc_read_indicate_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads read_indicate.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void props_svc_read_indicate_on_read(void);
+
 /** @brief Update and indicate the read_indicate characteristic.
  *
  *  @param data Pointer to the new value.
@@ -337,6 +400,16 @@ int props_svc_read_indicate_get(uint8_t *data, uint16_t len);
  *  @return 0 on success, or a negative error code (see bt_gatt_indicate()).
  */
 int props_svc_read_indicate_indicate(const uint8_t *data, uint16_t len);
+
+/** @brief Application hook called when read_indicate CCC state changes.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to react to a peer enabling/disabling
+ *  indications.
+ *
+ *  @param enabled True when indications were enabled.
+ */
+void props_svc_read_indicate_on_ccc(bool enabled);
 
 /** @brief Set the rw_notify characteristic value.
  *
@@ -362,6 +435,14 @@ int props_svc_rw_notify_set(const uint8_t *data, uint16_t len);
  */
 int props_svc_rw_notify_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads rw_notify.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void props_svc_rw_notify_on_read(void);
+
 /** @brief Application hook called after a peer writes rw_notify.
  *
  *  Defined as a weak no-op in the generated source. Define this function in
@@ -381,6 +462,16 @@ void props_svc_rw_notify_on_write(const uint8_t *data, uint16_t len);
  *  @return 0 on success, or a negative error code (see bt_gatt_notify_uuid()).
  */
 int props_svc_rw_notify_notify(const uint8_t *data, uint16_t len);
+
+/** @brief Application hook called when rw_notify CCC state changes.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to react to a peer enabling/disabling
+ *  notifications.
+ *
+ *  @param enabled True when notifications were enabled.
+ */
+void props_svc_rw_notify_on_ccc(bool enabled);
 
 /** @brief Set the rw_indicate characteristic value.
  *
@@ -406,6 +497,14 @@ int props_svc_rw_indicate_set(const uint8_t *data, uint16_t len);
  */
 int props_svc_rw_indicate_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads rw_indicate.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void props_svc_rw_indicate_on_read(void);
+
 /** @brief Application hook called after a peer writes rw_indicate.
  *
  *  Defined as a weak no-op in the generated source. Define this function in
@@ -425,6 +524,16 @@ void props_svc_rw_indicate_on_write(const uint8_t *data, uint16_t len);
  *  @return 0 on success, or a negative error code (see bt_gatt_indicate()).
  */
 int props_svc_rw_indicate_indicate(const uint8_t *data, uint16_t len);
+
+/** @brief Application hook called when rw_indicate CCC state changes.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to react to a peer enabling/disabling
+ *  indications.
+ *
+ *  @param enabled True when indications were enabled.
+ */
+void props_svc_rw_indicate_on_ccc(bool enabled);
 
 /** @brief Set the wwr_notify characteristic value.
  *
@@ -470,6 +579,16 @@ void props_svc_wwr_notify_on_write(const uint8_t *data, uint16_t len);
  */
 int props_svc_wwr_notify_notify(const uint8_t *data, uint16_t len);
 
+/** @brief Application hook called when wwr_notify CCC state changes.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to react to a peer enabling/disabling
+ *  notifications.
+ *
+ *  @param enabled True when notifications were enabled.
+ */
+void props_svc_wwr_notify_on_ccc(bool enabled);
+
 /** @brief Set the broadcast_chrc characteristic value.
  *
  *  Thread-safe when @c thread_safe is enabled for this characteristic.
@@ -494,6 +613,14 @@ int props_svc_broadcast_chrc_set(const uint8_t *data, uint16_t len);
  */
 int props_svc_broadcast_chrc_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads broadcast_chrc.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void props_svc_broadcast_chrc_on_read(void);
+
 /** @brief Set the signed_rw characteristic value.
  *
  *  Thread-safe when @c thread_safe is enabled for this characteristic.
@@ -517,6 +644,14 @@ int props_svc_signed_rw_set(const uint8_t *data, uint16_t len);
  *  @retval -EINVAL if @p data is NULL or @p len is too large.
  */
 int props_svc_signed_rw_get(uint8_t *data, uint16_t len);
+
+/** @brief Application hook called before a peer reads signed_rw.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void props_svc_signed_rw_on_read(void);
 
 /** @brief Application hook called after a peer writes signed_rw.
  *
@@ -553,6 +688,14 @@ int props_svc_ext_props_set(const uint8_t *data, uint16_t len);
  */
 int props_svc_ext_props_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads ext_props.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void props_svc_ext_props_on_read(void);
+
 /** @brief Application hook called after a peer writes ext_props.
  *
  *  Defined as a weak no-op in the generated source. Define this function in
@@ -587,6 +730,14 @@ int props_svc_big_value_set(const uint8_t *data, uint16_t len);
  *  @retval -EINVAL if @p data is NULL or @p len is too large.
  */
 int props_svc_big_value_get(uint8_t *data, uint16_t len);
+
+/** @brief Application hook called before a peer reads big_value.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void props_svc_big_value_on_read(void);
 
 /** @brief Application hook called after a peer writes big_value.
  *

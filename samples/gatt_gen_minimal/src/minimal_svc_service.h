@@ -13,6 +13,7 @@
 #ifndef BLE_GATT_GENERATOR_MINIMAL_SVC_H_
 #define BLE_GATT_GENERATOR_MINIMAL_SVC_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <zephyr/bluetooth/uuid.h>
@@ -62,6 +63,14 @@ int minimal_svc_read_only_set(const uint8_t *data, uint16_t len);
  */
 int minimal_svc_read_only_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads read_only.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void minimal_svc_read_only_on_read(void);
+
 /** @brief Set the read_write characteristic value.
  *
  *  Thread-safe when @c thread_safe is enabled for this characteristic.
@@ -85,6 +94,14 @@ int minimal_svc_read_write_set(const uint8_t *data, uint16_t len);
  *  @retval -EINVAL if @p data is NULL or @p len is too large.
  */
 int minimal_svc_read_write_get(uint8_t *data, uint16_t len);
+
+/** @brief Application hook called before a peer reads read_write.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void minimal_svc_read_write_on_read(void);
 
 /** @brief Application hook called after a peer writes read_write.
  *

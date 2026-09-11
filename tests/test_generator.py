@@ -58,6 +58,7 @@ def test_generate_writes_expected_files(tmp_path, notify_profile):
         "prj.conf",
         "CMakeLists.txt",
         "sample.yaml",
+        "KCONFIG_NOTES.md",
         "test_client.py",
         "web_client.html",
         "bsim/CMakeLists.txt",
@@ -264,3 +265,141 @@ def test_kitchen_sink_example_security_levels(tmp_path):
     for svc in profile.services:
         for chrc in svc.characteristics:
             assert f"{svc.name}_{chrc.name}_handle" in central
+
+
+def test_services_only_emits_just_service_files(tmp_path, notify_profile):
+    written = generate(notify_profile, tmp_path, services_only=True)
+    names = {p.relative_to(tmp_path).as_posix() for p in written}
+    assert names == {"src/notify_svc_service.c", "src/notify_svc_service.h"}
+
+
+def test_no_clients_and_no_bsim(tmp_path, notify_profile):
+    written = generate(notify_profile, tmp_path, clients=False, bsim=False)
+    names = {p.relative_to(tmp_path).as_posix() for p in written}
+    assert "test_client.py" not in names
+    assert not any(n.startswith("bsim/") for n in names)
+    assert "src/notify_svc_service.c" in names
+    assert "KCONFIG_NOTES.md" in names
+
+
+def test_initial_value_and_variable(tmp_path):
+    src = """
+profile:
+  name: p
+  services:
+    - name: svc
+      uuid: 12345678-1234-5678-1234-56789abcdef0
+      characteristics:
+        - name: cfg
+          uuid: 12345678-1234-5678-1234-56789abcdef1
+          properties: [read, write]
+          permissions: [read, write]
+          size: 8
+          variable: true
+          initial_value: "0x0102"
+    """
+    f = tmp_path / "p.yaml"
+    f.write_text(src)
+    profile = load_profile(str(f))
+    chrc = profile.services[0].characteristics[0]
+    assert chrc.initial_bytes() == b"\x01\x02"
+    assert chrc.initial_c() == "{ 0x01, 0x02 }"
+
+    generate(profile, tmp_path / "out")
+    c = (tmp_path / "out/src/svc_service.c").read_text()
+    h = (tmp_path / "out/src/svc_service.h").read_text()
+    assert "static uint8_t svc_cfg_value[SVC_CFG_SIZE] = { 0x01, 0x02 };" in c
+    assert "static uint16_t svc_cfg_value_len" in c
+    assert "uint16_t svc_cfg_len(void);" in h
+
+
+def test_initial_value_validation(tmp_path):
+    src = """
+profile:
+  name: p
+  services:
+    - name: svc
+      uuid: 12345678-1234-5678-1234-56789abcdef0
+      characteristics:
+        - name: cfg
+          uuid: 12345678-1234-5678-1234-56789abcdef1
+          properties: [read]
+          permissions: [read]
+          size: 1
+          initial_value: "0xaabbcc"
+    """
+    f = tmp_path / "p.yaml"
+    f.write_text(src)
+    with pytest.raises(Exception, match="initial_value"):
+        load_profile(str(f))
+
+
+def test_hooks_generated(tmp_path, notify_profile):
+    generate(notify_profile, tmp_path)
+    c = (tmp_path / "src/notify_svc_service.c").read_text()
+    h = (tmp_path / "src/notify_svc_service.h").read_text()
+    # notify profile: button has read+notify, led has write
+    assert "__weak void notify_svc_button_on_read(void)" in c
+    assert "void notify_svc_button_on_read(void);" in h
+    assert "__weak void notify_svc_button_on_ccc(bool enabled)" in c
+    assert "void notify_svc_button_on_ccc(bool enabled);" in h
+    assert "__weak void notify_svc_led_on_write" in c
+
+
+def test_kconfig_requirements(tmp_path):
+    from ble_gatt_generator.requirements import required_kconfigs
+
+    profile = load_profile(str(EXAMPLES / "kitchen_sink.yaml"))
+    reqs = {r.symbol: r for r in required_kconfigs(profile)}
+    assert reqs["CONFIG_BT_SMP"].mandatory
+    assert not reqs["CONFIG_BT_FIXED_PASSKEY"].mandatory
+    assert "CONFIG_BT_ATT_PREPARE_COUNT" in reqs
+    # big_value (64 bytes) needs MTU >= 68 > default
+    assert reqs["CONFIG_BT_L2CAP_TX_MTU"].value == "68"
+
+    generate(profile, tmp_path)
+    conf = (tmp_path / "prj.conf").read_text()
+    assert "CONFIG_BT_SMP=y" in conf
+    assert "CONFIG_BT_L2CAP_TX_MTU=68" in conf
+    assert "# (advisory)" in conf
+    notes = (tmp_path / "KCONFIG_NOTES.md").read_text()
+    assert "CONFIG_BT_GATT_SERVICE_CHANGED" in notes
+    assert "advisory" in notes
+
+
+def test_sig_uuid_warnings(tmp_path, notify_profile):
+    src = """
+profile:
+  name: p
+  services:
+    - name: battery
+      uuid: 180f
+      characteristics:
+        - name: level
+          uuid: 2a19
+          properties: [read]
+          permissions: [read]
+          size: 1
+    """
+    f = tmp_path / "p.yaml"
+    f.write_text(src)
+    warnings = load_profile(str(f)).sig_uuid_warnings()
+    assert len(warnings) == 2
+    assert "16-bit" in warnings[0]
+
+    # 128-bit UUIDs produce no warnings
+    assert notify_profile.sig_uuid_warnings() == []
+
+
+def test_export_schema(tmp_path):
+    from ble_gatt_generator.cli import main
+    from click.testing import CliRunner
+
+    runner = CliRunner()
+    out = tmp_path / "schema.json"
+    result = runner.invoke(main, ["export-schema", "-o", str(out)])
+    assert result.exit_code == 0
+    import json
+
+    schema = json.loads(out.read_text())
+    assert schema["title"] == "Profile"

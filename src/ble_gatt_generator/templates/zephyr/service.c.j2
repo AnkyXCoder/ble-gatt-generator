@@ -29,9 +29,16 @@
 /* ------------------------------------------------------------------------- */
 
 {% for chrc in service.characteristics %}
-static uint8_t {{ service.name }}_{{ chrc.name }}_value[{{ service.name | upper }}_{{ chrc.name | upper }}_SIZE];
+{% set base = service.name ~ '_' ~ chrc.name %}
+static uint8_t {{ base }}_value[{{ service.name | upper }}_{{ chrc.name | upper }}_SIZE]
+{%- if chrc.initial_bytes() %} = {{ chrc.initial_c() }}{% endif %};
+{% if chrc.variable %}
+/* Variable-length characteristic: tracks the last written length. */
+static uint16_t {{ base }}_value_len =
+	{{ chrc.initial_bytes() | length if chrc.initial_bytes() else chrc.size }};
+{% endif %}
 {% if chrc.thread_safe %}
-static K_MUTEX_DEFINE({{ service.name }}_{{ chrc.name }}_lock);
+static K_MUTEX_DEFINE({{ base }}_lock);
 {% endif %}
 {% endfor %}
 
@@ -80,6 +87,9 @@ int {{ base }}_set(const uint8_t *data, uint16_t len)
 	k_mutex_lock(&{{ base }}_lock, K_FOREVER);
 {% endif %}
 	memcpy({{ base }}_value, data, len);
+{% if chrc.variable %}
+	{{ base }}_value_len = len;
+{% endif %}
 {% if chrc.thread_safe %}
 	k_mutex_unlock(&{{ base }}_lock);
 {% endif %}
@@ -89,20 +99,33 @@ int {{ base }}_set(const uint8_t *data, uint16_t len)
 
 int {{ base }}_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof({{ base }}_value)) {
+	if (data == NULL) {
 		return -EINVAL;
 	}
+{% if not chrc.variable %}
+	if (len > sizeof({{ base }}_value)) {
+		return -EINVAL;
+	}
+{% endif %}
 
 {% if chrc.thread_safe %}
 	k_mutex_lock(&{{ base }}_lock, K_FOREVER);
 {% endif %}
-	memcpy(data, {{ base }}_value, len);
+	memcpy(data, {{ base }}_value,
+	       MIN(len, {% if chrc.variable %}{{ base }}_value_len{% else %}sizeof({{ base }}_value){% endif %}));
 {% if chrc.thread_safe %}
 	k_mutex_unlock(&{{ base }}_lock);
 {% endif %}
 
 	return 0;
 }
+{% if chrc.variable %}
+
+uint16_t {{ base }}_len(void)
+{
+	return {{ base }}_value_len;
+}
+{% endif %}
 
 {% endfor %}
 /* ------------------------------------------------------------------------- */
@@ -117,11 +140,13 @@ static ssize_t {{ base }}_read(struct bt_conn *conn, const struct bt_gatt_attr *
 {
 	ssize_t ret;
 
+	{{ base }}_on_read();
+
 {% if chrc.thread_safe %}
 	k_mutex_lock(&{{ base }}_lock, K_FOREVER);
 {% endif %}
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, {{ base }}_value,
-				sizeof({{ base }}_value));
+				{% if chrc.variable %}{{ base }}_value_len{% else %}sizeof({{ base }}_value){% endif %});
 {% if chrc.thread_safe %}
 	k_mutex_unlock(&{{ base }}_lock);
 {% endif %}
@@ -150,11 +175,15 @@ static ssize_t {{ base }}_write(struct bt_conn *conn, const struct bt_gatt_attr 
 	k_mutex_lock(&{{ base }}_lock, K_FOREVER);
 {% endif %}
 	memcpy({{ base }}_value + offset, buf, len);
+{% if chrc.variable %}
+	{{ base }}_value_len = offset + len;
+{% endif %}
 {% if chrc.thread_safe %}
 	k_mutex_unlock(&{{ base }}_lock);
 {% endif %}
 
-	{{ base }}_on_write({{ base }}_value, sizeof({{ base }}_value));
+	{{ base }}_on_write({{ base }}_value,
+			    {% if chrc.variable %}offset + len{% else %}sizeof({{ base }}_value){% endif %});
 
 	return len;
 }
@@ -163,10 +192,14 @@ static ssize_t {{ base }}_write(struct bt_conn *conn, const struct bt_gatt_attr 
 {% if chrc.needs_ccc() %}
 static void {{ base }}_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == {{ chrc.ccc_flags() }};
+
 	ARG_UNUSED(attr);
 
 	printk("{{ chrc.name }} {{ 'notifications' if chrc.has_notify() else 'indications' }} %s\n",
-	       value == {{ chrc.ccc_flags() }} ? "enabled" : "disabled");
+	       enabled ? "enabled" : "disabled");
+
+	{{ base }}_on_ccc(enabled);
 }
 
 {% endif %}
@@ -175,14 +208,29 @@ static void {{ base }}_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t
 /* Application hooks (weak defaults; override in your own sources)           */
 /* ------------------------------------------------------------------------- */
 
-{% for chrc in service.characteristics if chrc.has_write() %}
+{% for chrc in service.characteristics %}
 {% set base = service.name ~ '_' ~ chrc.name %}
+{% if chrc.has_read() %}
+__weak void {{ base }}_on_read(void)
+{
+}
+{% endif %}
+{% if chrc.has_write() %}
 __weak void {{ base }}_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);
 	ARG_UNUSED(len);
 }
+{% endif %}
+{% if chrc.needs_ccc() %}
+__weak void {{ base }}_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
+}
+{% endif %}
+{% if chrc.has_read() or chrc.has_write() or chrc.needs_ccc() %}
 
+{% endif %}
 {% endfor %}
 /* ------------------------------------------------------------------------- */
 /* Push helpers                                                              */

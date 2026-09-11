@@ -86,12 +86,15 @@ int props_svc_read_only_set(const uint8_t *data, uint16_t len)
 
 int props_svc_read_only_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_read_only_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_read_only_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_read_only_lock, K_FOREVER);
-	memcpy(data, props_svc_read_only_value, len);
+	memcpy(data, props_svc_read_only_value, MIN(len, sizeof(props_svc_read_only_value)));
 	k_mutex_unlock(&props_svc_read_only_lock);
 
 	return 0;
@@ -112,12 +115,15 @@ int props_svc_write_only_set(const uint8_t *data, uint16_t len)
 
 int props_svc_write_only_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_write_only_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_write_only_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_write_only_lock, K_FOREVER);
-	memcpy(data, props_svc_write_only_value, len);
+	memcpy(data, props_svc_write_only_value, MIN(len, sizeof(props_svc_write_only_value)));
 	k_mutex_unlock(&props_svc_write_only_lock);
 
 	return 0;
@@ -138,12 +144,15 @@ int props_svc_wwr_only_set(const uint8_t *data, uint16_t len)
 
 int props_svc_wwr_only_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_wwr_only_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_wwr_only_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_wwr_only_lock, K_FOREVER);
-	memcpy(data, props_svc_wwr_only_value, len);
+	memcpy(data, props_svc_wwr_only_value, MIN(len, sizeof(props_svc_wwr_only_value)));
 	k_mutex_unlock(&props_svc_wwr_only_lock);
 
 	return 0;
@@ -164,12 +173,15 @@ int props_svc_read_write_set(const uint8_t *data, uint16_t len)
 
 int props_svc_read_write_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_read_write_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_read_write_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_read_write_lock, K_FOREVER);
-	memcpy(data, props_svc_read_write_value, len);
+	memcpy(data, props_svc_read_write_value, MIN(len, sizeof(props_svc_read_write_value)));
 	k_mutex_unlock(&props_svc_read_write_lock);
 
 	return 0;
@@ -190,12 +202,15 @@ int props_svc_notify_only_set(const uint8_t *data, uint16_t len)
 
 int props_svc_notify_only_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_notify_only_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_notify_only_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_notify_only_lock, K_FOREVER);
-	memcpy(data, props_svc_notify_only_value, len);
+	memcpy(data, props_svc_notify_only_value, MIN(len, sizeof(props_svc_notify_only_value)));
 	k_mutex_unlock(&props_svc_notify_only_lock);
 
 	return 0;
@@ -216,12 +231,16 @@ int props_svc_indicate_only_set(const uint8_t *data, uint16_t len)
 
 int props_svc_indicate_only_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_indicate_only_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_indicate_only_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_indicate_only_lock, K_FOREVER);
-	memcpy(data, props_svc_indicate_only_value, len);
+	memcpy(data, props_svc_indicate_only_value,
+	       MIN(len, sizeof(props_svc_indicate_only_value)));
 	k_mutex_unlock(&props_svc_indicate_only_lock);
 
 	return 0;
@@ -242,12 +261,15 @@ int props_svc_read_notify_set(const uint8_t *data, uint16_t len)
 
 int props_svc_read_notify_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_read_notify_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_read_notify_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_read_notify_lock, K_FOREVER);
-	memcpy(data, props_svc_read_notify_value, len);
+	memcpy(data, props_svc_read_notify_value, MIN(len, sizeof(props_svc_read_notify_value)));
 	k_mutex_unlock(&props_svc_read_notify_lock);
 
 	return 0;
@@ -268,12 +290,16 @@ int props_svc_read_indicate_set(const uint8_t *data, uint16_t len)
 
 int props_svc_read_indicate_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_read_indicate_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_read_indicate_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_read_indicate_lock, K_FOREVER);
-	memcpy(data, props_svc_read_indicate_value, len);
+	memcpy(data, props_svc_read_indicate_value,
+	       MIN(len, sizeof(props_svc_read_indicate_value)));
 	k_mutex_unlock(&props_svc_read_indicate_lock);
 
 	return 0;
@@ -294,12 +320,15 @@ int props_svc_rw_notify_set(const uint8_t *data, uint16_t len)
 
 int props_svc_rw_notify_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_rw_notify_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_rw_notify_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_rw_notify_lock, K_FOREVER);
-	memcpy(data, props_svc_rw_notify_value, len);
+	memcpy(data, props_svc_rw_notify_value, MIN(len, sizeof(props_svc_rw_notify_value)));
 	k_mutex_unlock(&props_svc_rw_notify_lock);
 
 	return 0;
@@ -320,12 +349,15 @@ int props_svc_rw_indicate_set(const uint8_t *data, uint16_t len)
 
 int props_svc_rw_indicate_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_rw_indicate_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_rw_indicate_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_rw_indicate_lock, K_FOREVER);
-	memcpy(data, props_svc_rw_indicate_value, len);
+	memcpy(data, props_svc_rw_indicate_value, MIN(len, sizeof(props_svc_rw_indicate_value)));
 	k_mutex_unlock(&props_svc_rw_indicate_lock);
 
 	return 0;
@@ -346,12 +378,15 @@ int props_svc_wwr_notify_set(const uint8_t *data, uint16_t len)
 
 int props_svc_wwr_notify_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_wwr_notify_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_wwr_notify_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_wwr_notify_lock, K_FOREVER);
-	memcpy(data, props_svc_wwr_notify_value, len);
+	memcpy(data, props_svc_wwr_notify_value, MIN(len, sizeof(props_svc_wwr_notify_value)));
 	k_mutex_unlock(&props_svc_wwr_notify_lock);
 
 	return 0;
@@ -372,12 +407,16 @@ int props_svc_broadcast_chrc_set(const uint8_t *data, uint16_t len)
 
 int props_svc_broadcast_chrc_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_broadcast_chrc_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_broadcast_chrc_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_broadcast_chrc_lock, K_FOREVER);
-	memcpy(data, props_svc_broadcast_chrc_value, len);
+	memcpy(data, props_svc_broadcast_chrc_value,
+	       MIN(len, sizeof(props_svc_broadcast_chrc_value)));
 	k_mutex_unlock(&props_svc_broadcast_chrc_lock);
 
 	return 0;
@@ -398,12 +437,15 @@ int props_svc_signed_rw_set(const uint8_t *data, uint16_t len)
 
 int props_svc_signed_rw_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_signed_rw_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_signed_rw_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_signed_rw_lock, K_FOREVER);
-	memcpy(data, props_svc_signed_rw_value, len);
+	memcpy(data, props_svc_signed_rw_value, MIN(len, sizeof(props_svc_signed_rw_value)));
 	k_mutex_unlock(&props_svc_signed_rw_lock);
 
 	return 0;
@@ -424,12 +466,15 @@ int props_svc_ext_props_set(const uint8_t *data, uint16_t len)
 
 int props_svc_ext_props_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_ext_props_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_ext_props_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_ext_props_lock, K_FOREVER);
-	memcpy(data, props_svc_ext_props_value, len);
+	memcpy(data, props_svc_ext_props_value, MIN(len, sizeof(props_svc_ext_props_value)));
 	k_mutex_unlock(&props_svc_ext_props_lock);
 
 	return 0;
@@ -450,12 +495,15 @@ int props_svc_big_value_set(const uint8_t *data, uint16_t len)
 
 int props_svc_big_value_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(props_svc_big_value_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(props_svc_big_value_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&props_svc_big_value_lock, K_FOREVER);
-	memcpy(data, props_svc_big_value_value, len);
+	memcpy(data, props_svc_big_value_value, MIN(len, sizeof(props_svc_big_value_value)));
 	k_mutex_unlock(&props_svc_big_value_lock);
 
 	return 0;
@@ -469,6 +517,8 @@ static ssize_t props_svc_read_only_read(struct bt_conn *conn, const struct bt_ga
 					void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	props_svc_read_only_on_read();
 
 	k_mutex_lock(&props_svc_read_only_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, props_svc_read_only_value,
@@ -534,6 +584,8 @@ static ssize_t props_svc_read_write_read(struct bt_conn *conn, const struct bt_g
 {
 	ssize_t ret;
 
+	props_svc_read_write_on_read();
+
 	k_mutex_lock(&props_svc_read_write_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, props_svc_read_write_value,
 				sizeof(props_svc_read_write_value));
@@ -570,24 +622,32 @@ static ssize_t props_svc_read_write_write(struct bt_conn *conn, const struct bt_
 
 static void props_svc_notify_only_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == BT_GATT_CCC_NOTIFY;
+
 	ARG_UNUSED(attr);
 
-	printk("notify_only notifications %s\n",
-	       value == BT_GATT_CCC_NOTIFY ? "enabled" : "disabled");
+	printk("notify_only notifications %s\n", enabled ? "enabled" : "disabled");
+
+	props_svc_notify_only_on_ccc(enabled);
 }
 
 static void props_svc_indicate_only_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == BT_GATT_CCC_INDICATE;
+
 	ARG_UNUSED(attr);
 
-	printk("indicate_only indications %s\n",
-	       value == BT_GATT_CCC_INDICATE ? "enabled" : "disabled");
+	printk("indicate_only indications %s\n", enabled ? "enabled" : "disabled");
+
+	props_svc_indicate_only_on_ccc(enabled);
 }
 
 static ssize_t props_svc_read_notify_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 					  void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	props_svc_read_notify_on_read();
 
 	k_mutex_lock(&props_svc_read_notify_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, props_svc_read_notify_value,
@@ -599,16 +659,21 @@ static ssize_t props_svc_read_notify_read(struct bt_conn *conn, const struct bt_
 
 static void props_svc_read_notify_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == BT_GATT_CCC_NOTIFY;
+
 	ARG_UNUSED(attr);
 
-	printk("read_notify notifications %s\n",
-	       value == BT_GATT_CCC_NOTIFY ? "enabled" : "disabled");
+	printk("read_notify notifications %s\n", enabled ? "enabled" : "disabled");
+
+	props_svc_read_notify_on_ccc(enabled);
 }
 
 static ssize_t props_svc_read_indicate_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 					    void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	props_svc_read_indicate_on_read();
 
 	k_mutex_lock(&props_svc_read_indicate_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, props_svc_read_indicate_value,
@@ -620,16 +685,21 @@ static ssize_t props_svc_read_indicate_read(struct bt_conn *conn, const struct b
 
 static void props_svc_read_indicate_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == BT_GATT_CCC_INDICATE;
+
 	ARG_UNUSED(attr);
 
-	printk("read_indicate indications %s\n",
-	       value == BT_GATT_CCC_INDICATE ? "enabled" : "disabled");
+	printk("read_indicate indications %s\n", enabled ? "enabled" : "disabled");
+
+	props_svc_read_indicate_on_ccc(enabled);
 }
 
 static ssize_t props_svc_rw_notify_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 					void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	props_svc_rw_notify_on_read();
 
 	k_mutex_lock(&props_svc_rw_notify_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, props_svc_rw_notify_value,
@@ -666,16 +736,21 @@ static ssize_t props_svc_rw_notify_write(struct bt_conn *conn, const struct bt_g
 
 static void props_svc_rw_notify_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == BT_GATT_CCC_NOTIFY;
+
 	ARG_UNUSED(attr);
 
-	printk("rw_notify notifications %s\n",
-	       value == BT_GATT_CCC_NOTIFY ? "enabled" : "disabled");
+	printk("rw_notify notifications %s\n", enabled ? "enabled" : "disabled");
+
+	props_svc_rw_notify_on_ccc(enabled);
 }
 
 static ssize_t props_svc_rw_indicate_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 					  void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	props_svc_rw_indicate_on_read();
 
 	k_mutex_lock(&props_svc_rw_indicate_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, props_svc_rw_indicate_value,
@@ -713,10 +788,13 @@ static ssize_t props_svc_rw_indicate_write(struct bt_conn *conn, const struct bt
 
 static void props_svc_rw_indicate_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == BT_GATT_CCC_INDICATE;
+
 	ARG_UNUSED(attr);
 
-	printk("rw_indicate indications %s\n",
-	       value == BT_GATT_CCC_INDICATE ? "enabled" : "disabled");
+	printk("rw_indicate indications %s\n", enabled ? "enabled" : "disabled");
+
+	props_svc_rw_indicate_on_ccc(enabled);
 }
 
 static ssize_t props_svc_wwr_notify_write(struct bt_conn *conn, const struct bt_gatt_attr *attr,
@@ -747,16 +825,21 @@ static ssize_t props_svc_wwr_notify_write(struct bt_conn *conn, const struct bt_
 
 static void props_svc_wwr_notify_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == BT_GATT_CCC_NOTIFY;
+
 	ARG_UNUSED(attr);
 
-	printk("wwr_notify notifications %s\n",
-	       value == BT_GATT_CCC_NOTIFY ? "enabled" : "disabled");
+	printk("wwr_notify notifications %s\n", enabled ? "enabled" : "disabled");
+
+	props_svc_wwr_notify_on_ccc(enabled);
 }
 
 static ssize_t props_svc_broadcast_chrc_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 					     void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	props_svc_broadcast_chrc_on_read();
 
 	k_mutex_lock(&props_svc_broadcast_chrc_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, props_svc_broadcast_chrc_value,
@@ -770,6 +853,8 @@ static ssize_t props_svc_signed_rw_read(struct bt_conn *conn, const struct bt_ga
 					void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	props_svc_signed_rw_on_read();
 
 	k_mutex_lock(&props_svc_signed_rw_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, props_svc_signed_rw_value,
@@ -809,6 +894,8 @@ static ssize_t props_svc_ext_props_read(struct bt_conn *conn, const struct bt_ga
 {
 	ssize_t ret;
 
+	props_svc_ext_props_on_read();
+
 	k_mutex_lock(&props_svc_ext_props_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, props_svc_ext_props_value,
 				sizeof(props_svc_ext_props_value));
@@ -847,6 +934,8 @@ static ssize_t props_svc_big_value_read(struct bt_conn *conn, const struct bt_ga
 {
 	ssize_t ret;
 
+	props_svc_big_value_on_read();
+
 	k_mutex_lock(&props_svc_big_value_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, props_svc_big_value_value,
 				sizeof(props_svc_big_value_value));
@@ -884,6 +973,10 @@ static ssize_t props_svc_big_value_write(struct bt_conn *conn, const struct bt_g
 /* Application hooks (weak defaults; override in your own sources)           */
 /* ------------------------------------------------------------------------- */
 
+__weak void props_svc_read_only_on_read(void)
+{
+}
+
 __weak void props_svc_write_only_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);
@@ -896,22 +989,65 @@ __weak void props_svc_wwr_only_on_write(const uint8_t *data, uint16_t len)
 	ARG_UNUSED(len);
 }
 
+__weak void props_svc_read_write_on_read(void)
+{
+}
 __weak void props_svc_read_write_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);
 	ARG_UNUSED(len);
 }
 
+__weak void props_svc_notify_only_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
+}
+
+__weak void props_svc_indicate_only_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
+}
+
+__weak void props_svc_read_notify_on_read(void)
+{
+}
+__weak void props_svc_read_notify_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
+}
+
+__weak void props_svc_read_indicate_on_read(void)
+{
+}
+__weak void props_svc_read_indicate_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
+}
+
+__weak void props_svc_rw_notify_on_read(void)
+{
+}
 __weak void props_svc_rw_notify_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);
 	ARG_UNUSED(len);
 }
+__weak void props_svc_rw_notify_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
+}
 
+__weak void props_svc_rw_indicate_on_read(void)
+{
+}
 __weak void props_svc_rw_indicate_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);
 	ARG_UNUSED(len);
+}
+__weak void props_svc_rw_indicate_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
 }
 
 __weak void props_svc_wwr_notify_on_write(const uint8_t *data, uint16_t len)
@@ -919,19 +1055,36 @@ __weak void props_svc_wwr_notify_on_write(const uint8_t *data, uint16_t len)
 	ARG_UNUSED(data);
 	ARG_UNUSED(len);
 }
+__weak void props_svc_wwr_notify_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
+}
 
+__weak void props_svc_broadcast_chrc_on_read(void)
+{
+}
+
+__weak void props_svc_signed_rw_on_read(void)
+{
+}
 __weak void props_svc_signed_rw_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);
 	ARG_UNUSED(len);
 }
 
+__weak void props_svc_ext_props_on_read(void)
+{
+}
 __weak void props_svc_ext_props_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);
 	ARG_UNUSED(len);
 }
 
+__weak void props_svc_big_value_on_read(void)
+{
+}
 __weak void props_svc_big_value_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);

@@ -47,12 +47,19 @@ ble-gatt-generator -i examples/minimal.yaml -o my_app
 
 Options:
 
-| Flag           | Description                                                                             |
-| -------------- | --------------------------------------------------------------------------------------- |
-| `-i, --input`  | YAML profile to read.                                                                   |
-| `-o, --output` | Output directory (created if missing).                                                  |
-| `-f, --force`  | Overwrite user-owned files (`src/main.c`, `prj.conf`, `CMakeLists.txt`, `sample.yaml`). |
-| `--version`    | Print the tool version.                                                                 |
+| Flag              | Description                                                                             |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| `-i, --input`     | YAML profile to read.                                                                   |
+| `-o, --output`    | Output directory (created if missing).                                                  |
+| `-f, --force`     | Overwrite user-owned files (`src/main.c`, `prj.conf`, `CMakeLists.txt`, `sample.yaml`). |
+| `--services-only` | Emit only `src/<service>_service.[ch]` — for dropping into an existing app.             |
+| `--no-clients`    | Skip the Bleak/Web Bluetooth test clients.                                              |
+| `--no-bsim`       | Skip the BabbleSim self-test under `bsim/`.                                             |
+| `--version`       | Print the tool version.                                                                 |
+
+Subcommand: `ble-gatt-generator export-schema [-o schema.json]` dumps a JSON
+Schema for the profile format — wire it into your editor (e.g. VS Code via a
+`yaml-language-server` modeline) for live YAML validation.
 
 Equivalent west form:
 
@@ -68,7 +75,8 @@ Generated files fall into two groups:
 | ----------------------------------- | --------------------------------------------- |
 | `src/<service>_service.c`           | `src/main.c`                                  |
 | `src/<service>_service.h`           | `prj.conf`                                    |
-| `test_client.py`, `web_client.html` | `CMakeLists.txt`, `sample.yaml`               |
+| `KCONFIG_NOTES.md`                  | `CMakeLists.txt`, `sample.yaml`               |
+| `test_client.py`, `web_client.html` |                                               |
 | `bsim/` (whole directory)           |                                               |
 
 Put your application logic in `main.c` or your own sources and talk to the
@@ -181,6 +189,7 @@ profile            → device-level info, one per file
 | Field      | Required | Notes                                                |
 | ---------- | -------- | ---------------------------------------------------- |
 | `name`     | yes      | C identifier; also used for `CONFIG_BT_DEVICE_NAME`. |
+| `role`     | no       | `peripheral` (default), `central` or `both`.         |
 | `services` | yes      | Non-empty list of services.                          |
 
 Each entry in `services:`
@@ -193,15 +202,17 @@ Each entry in `services:`
 
 Each entry in `characteristics:`
 
-| Field         | Required | Default | Notes                                                   |
-| ------------- | -------- | ------- | ------------------------------------------------------- |
-| `name`        | yes      | —       | C identifier; used in `get_*`/`set_*`/`notify` helpers. |
-| `uuid`        | yes      | —       | Same formats as the service UUID.                       |
-| `properties`  | yes      | —       | Non-empty list; see table below.                        |
-| `permissions` | yes      | —       | List, may be empty `[]`; see table below.               |
-| `size`        | no       | `1`     | Value buffer size in bytes, 1–512.                      |
-| `thread_safe` | no       | `true`  | `false` omits the `k_mutex` around the value buffer.    |
-| `descriptors` | no       | `[]`    | See the descriptor table below.                         |
+| Field           | Required | Default | Notes                                                                                                                |
+| --------------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------- |
+| `name`          | yes      | —       | C identifier; used in `get_*`/`set_*`/`notify` helpers.                                                              |
+| `uuid`          | yes      | —       | Same formats as the service UUID.                                                                                    |
+| `properties`    | yes      | —       | Non-empty list; see table below.                                                                                     |
+| `permissions`   | yes      | —       | List, may be empty `[]`; see table below.                                                                            |
+| `size`          | no       | `1`     | Value buffer size in bytes, 1–512.                                                                                   |
+| `thread_safe`   | no       | `true`  | `false` omits the `k_mutex` around the value buffer.                                                                 |
+| `variable`      | no       | `false` | Track the actual written length; adds a `_len()` helper and reads serve the current length instead of always `size`. |
+| `initial_value` | no       | —       | `0x…` hex bytes or a string; initialises the value buffer (must fit `size`).                                         |
+| `descriptors`   | no       | `[]`    | See the descriptor table below.                                                                                      |
 
 ### Properties → what gets generated
 
@@ -232,6 +243,12 @@ Any encrypted/authenticated/LESC permission automatically enables
 `CONFIG_BT_SMP` in the generated `prj.conf`, and the BabbleSim self-test pairs
 to the required level (`CONFIG_BT_FIXED_PASSKEY` + `CONFIG_BT_SMP_SC_ONLY`
 when needed).
+
+Every generated `prj.conf` contains the computed minimum Kconfig set for the
+profile — role (`BT_PERIPHERAL`/`BT_CENTRAL`/`BT_GATT_CLIENT`), `BT_SMP`,
+`BT_L2CAP_TX_MTU` sized to the largest characteristic, `BT_ATT_PREPARE_COUNT`
+when `prepare_write` is used, and more — with advisory settings as comments.
+`KCONFIG_NOTES.md` explains each one.
 
 ### Descriptors
 
@@ -332,9 +349,14 @@ int  battery_level_get(uint8_t *data, uint16_t len);         /* thread-safe */
 int  battery_level_notify(const uint8_t *data, uint16_t len); /* if notify */
 int  battery_level_indicate(const uint8_t *data, uint16_t len); /* if indicate */
 
-/* Weak hook, only for writable characteristics. Define it in your code: */
-void battery_control_on_write(const uint8_t *data, uint16_t len);
+/* Weak hooks — define any of these in your own code: */
+void battery_level_on_read(void);                     /* before reads */
+void battery_level_on_ccc(bool enabled);              /* on CCC change */
+void battery_control_on_write(const uint8_t *data, uint16_t len); /* after writes */
 ```
+
+For `variable: true` characteristics there is also
+`uint16_t battery_level_len(void)` returning the last written length.
 
 Read/write GATT callbacks, prepare-write handling, CCC change logging and the
 descriptor tables are generated for you.

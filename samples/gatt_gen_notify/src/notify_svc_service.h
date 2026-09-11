@@ -13,6 +13,7 @@
 #ifndef BLE_GATT_GENERATOR_NOTIFY_SVC_H_
 #define BLE_GATT_GENERATOR_NOTIFY_SVC_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <zephyr/bluetooth/uuid.h>
@@ -62,6 +63,14 @@ int notify_svc_button_set(const uint8_t *data, uint16_t len);
  */
 int notify_svc_button_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads button.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void notify_svc_button_on_read(void);
+
 /** @brief Update and notify the button characteristic.
  *
  *  @param data Pointer to the new value.
@@ -70,6 +79,16 @@ int notify_svc_button_get(uint8_t *data, uint16_t len);
  *  @return 0 on success, or a negative error code (see bt_gatt_notify_uuid()).
  */
 int notify_svc_button_notify(const uint8_t *data, uint16_t len);
+
+/** @brief Application hook called when button CCC state changes.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to react to a peer enabling/disabling
+ *  notifications.
+ *
+ *  @param enabled True when notifications were enabled.
+ */
+void notify_svc_button_on_ccc(bool enabled);
 
 /** @brief Set the led characteristic value.
  *
@@ -94,6 +113,14 @@ int notify_svc_led_set(const uint8_t *data, uint16_t len);
  *  @retval -EINVAL if @p data is NULL or @p len is too large.
  */
 int notify_svc_led_get(uint8_t *data, uint16_t len);
+
+/** @brief Application hook called before a peer reads led.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void notify_svc_led_on_read(void);
 
 /** @brief Application hook called after a peer writes led.
  *

@@ -13,6 +13,7 @@
 #ifndef BLE_GATT_GENERATOR_SEC_SVC_H_
 #define BLE_GATT_GENERATOR_SEC_SVC_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <zephyr/bluetooth/uuid.h>
@@ -80,6 +81,14 @@ int sec_svc_enc_read_set(const uint8_t *data, uint16_t len);
  */
 int sec_svc_enc_read_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads enc_read.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void sec_svc_enc_read_on_read(void);
+
 /** @brief Set the enc_write characteristic value.
  *
  *  Thread-safe when @c thread_safe is enabled for this characteristic.
@@ -139,6 +148,14 @@ int sec_svc_enc_rw_set(const uint8_t *data, uint16_t len);
  */
 int sec_svc_enc_rw_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads enc_rw.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void sec_svc_enc_rw_on_read(void);
+
 /** @brief Application hook called after a peer writes enc_rw.
  *
  *  Defined as a weak no-op in the generated source. Define this function in
@@ -174,6 +191,14 @@ int sec_svc_auth_read_set(const uint8_t *data, uint16_t len);
  */
 int sec_svc_auth_read_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads auth_read.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void sec_svc_auth_read_on_read(void);
+
 /** @brief Set the auth_rw characteristic value.
  *
  *  Thread-safe when @c thread_safe is enabled for this characteristic.
@@ -197,6 +222,14 @@ int sec_svc_auth_rw_set(const uint8_t *data, uint16_t len);
  *  @retval -EINVAL if @p data is NULL or @p len is too large.
  */
 int sec_svc_auth_rw_get(uint8_t *data, uint16_t len);
+
+/** @brief Application hook called before a peer reads auth_rw.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void sec_svc_auth_rw_on_read(void);
 
 /** @brief Application hook called after a peer writes auth_rw.
  *
@@ -233,6 +266,14 @@ int sec_svc_lesc_rw_set(const uint8_t *data, uint16_t len);
  */
 int sec_svc_lesc_rw_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads lesc_rw.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void sec_svc_lesc_rw_on_read(void);
+
 /** @brief Application hook called after a peer writes lesc_rw.
  *
  *  Defined as a weak no-op in the generated source. Define this function in
@@ -268,6 +309,14 @@ int sec_svc_enc_notify_set(const uint8_t *data, uint16_t len);
  */
 int sec_svc_enc_notify_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads enc_notify.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void sec_svc_enc_notify_on_read(void);
+
 /** @brief Update and notify the enc_notify characteristic.
  *
  *  @param data Pointer to the new value.
@@ -276,6 +325,16 @@ int sec_svc_enc_notify_get(uint8_t *data, uint16_t len);
  *  @return 0 on success, or a negative error code (see bt_gatt_notify_uuid()).
  */
 int sec_svc_enc_notify_notify(const uint8_t *data, uint16_t len);
+
+/** @brief Application hook called when enc_notify CCC state changes.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to react to a peer enabling/disabling
+ *  notifications.
+ *
+ *  @param enabled True when notifications were enabled.
+ */
+void sec_svc_enc_notify_on_ccc(bool enabled);
 
 /** @brief Set the auth_indicate characteristic value.
  *
@@ -301,6 +360,14 @@ int sec_svc_auth_indicate_set(const uint8_t *data, uint16_t len);
  */
 int sec_svc_auth_indicate_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads auth_indicate.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void sec_svc_auth_indicate_on_read(void);
+
 /** @brief Update and indicate the auth_indicate characteristic.
  *
  *  @param data Pointer to the new value.
@@ -309,6 +376,16 @@ int sec_svc_auth_indicate_get(uint8_t *data, uint16_t len);
  *  @return 0 on success, or a negative error code (see bt_gatt_indicate()).
  */
 int sec_svc_auth_indicate_indicate(const uint8_t *data, uint16_t len);
+
+/** @brief Application hook called when auth_indicate CCC state changes.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to react to a peer enabling/disabling
+ *  indications.
+ *
+ *  @param enabled True when indications were enabled.
+ */
+void sec_svc_auth_indicate_on_ccc(bool enabled);
 
 /** @} */
 

@@ -59,6 +59,21 @@ class GattGen(WestCommand):
             action="store_true",
             help="Overwrite user-owned files (main.c, prj.conf, CMakeLists.txt, sample.yaml).",
         )
+        parser.add_argument(
+            "--services-only",
+            action="store_true",
+            help="Emit only src/<service>_service.[ch].",
+        )
+        parser.add_argument(
+            "--no-clients",
+            action="store_true",
+            help="Skip the Bleak/Web Bluetooth test clients.",
+        )
+        parser.add_argument(
+            "--no-bsim",
+            action="store_true",
+            help="Skip the BabbleSim self-test under bsim/.",
+        )
         return parser
 
     def do_run(self, args, unknown_args) -> None:
@@ -67,7 +82,16 @@ class GattGen(WestCommand):
             profile = load_profile(args.input)
         except ValueError as exc:
             self.die(f"Invalid profile {args.input}:\n{exc}")
+        for warning in profile.sig_uuid_warnings():
+            self.wrn(warning)
         output_dir = Path(args.output)
-        written = generate(profile, output_dir, force=args.force)
+        written = generate(
+            profile,
+            output_dir,
+            force=args.force,
+            services_only=args.services_only,
+            clients=not args.no_clients,
+            bsim=not args.no_bsim,
+        )
         self.inf(f"Generated {len(profile.services)} service(s), "
                  f"{len(written)} file(s) into {output_dir}")

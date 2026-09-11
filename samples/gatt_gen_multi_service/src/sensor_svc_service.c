@@ -66,12 +66,15 @@ int sensor_svc_temperature_set(const uint8_t *data, uint16_t len)
 
 int sensor_svc_temperature_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(sensor_svc_temperature_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(sensor_svc_temperature_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&sensor_svc_temperature_lock, K_FOREVER);
-	memcpy(data, sensor_svc_temperature_value, len);
+	memcpy(data, sensor_svc_temperature_value, MIN(len, sizeof(sensor_svc_temperature_value)));
 	k_mutex_unlock(&sensor_svc_temperature_lock);
 
 	return 0;
@@ -92,12 +95,15 @@ int sensor_svc_humidity_set(const uint8_t *data, uint16_t len)
 
 int sensor_svc_humidity_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(sensor_svc_humidity_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(sensor_svc_humidity_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&sensor_svc_humidity_lock, K_FOREVER);
-	memcpy(data, sensor_svc_humidity_value, len);
+	memcpy(data, sensor_svc_humidity_value, MIN(len, sizeof(sensor_svc_humidity_value)));
 	k_mutex_unlock(&sensor_svc_humidity_lock);
 
 	return 0;
@@ -118,12 +124,16 @@ int sensor_svc_sampling_rate_set(const uint8_t *data, uint16_t len)
 
 int sensor_svc_sampling_rate_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(sensor_svc_sampling_rate_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(sensor_svc_sampling_rate_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&sensor_svc_sampling_rate_lock, K_FOREVER);
-	memcpy(data, sensor_svc_sampling_rate_value, len);
+	memcpy(data, sensor_svc_sampling_rate_value,
+	       MIN(len, sizeof(sensor_svc_sampling_rate_value)));
 	k_mutex_unlock(&sensor_svc_sampling_rate_lock);
 
 	return 0;
@@ -138,6 +148,8 @@ static ssize_t sensor_svc_temperature_read(struct bt_conn *conn, const struct bt
 {
 	ssize_t ret;
 
+	sensor_svc_temperature_on_read();
+
 	k_mutex_lock(&sensor_svc_temperature_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, sensor_svc_temperature_value,
 				sizeof(sensor_svc_temperature_value));
@@ -148,16 +160,21 @@ static ssize_t sensor_svc_temperature_read(struct bt_conn *conn, const struct bt
 
 static void sensor_svc_temperature_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == BT_GATT_CCC_NOTIFY;
+
 	ARG_UNUSED(attr);
 
-	printk("temperature notifications %s\n",
-	       value == BT_GATT_CCC_NOTIFY ? "enabled" : "disabled");
+	printk("temperature notifications %s\n", enabled ? "enabled" : "disabled");
+
+	sensor_svc_temperature_on_ccc(enabled);
 }
 
 static ssize_t sensor_svc_humidity_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 					void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	sensor_svc_humidity_on_read();
 
 	k_mutex_lock(&sensor_svc_humidity_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, sensor_svc_humidity_value,
@@ -169,15 +186,21 @@ static ssize_t sensor_svc_humidity_read(struct bt_conn *conn, const struct bt_ga
 
 static void sensor_svc_humidity_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == BT_GATT_CCC_INDICATE;
+
 	ARG_UNUSED(attr);
 
-	printk("humidity indications %s\n", value == BT_GATT_CCC_INDICATE ? "enabled" : "disabled");
+	printk("humidity indications %s\n", enabled ? "enabled" : "disabled");
+
+	sensor_svc_humidity_on_ccc(enabled);
 }
 
 static ssize_t sensor_svc_sampling_rate_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 					     void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	sensor_svc_sampling_rate_on_read();
 
 	k_mutex_lock(&sensor_svc_sampling_rate_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, sensor_svc_sampling_rate_value,
@@ -217,6 +240,25 @@ static ssize_t sensor_svc_sampling_rate_write(struct bt_conn *conn, const struct
 /* Application hooks (weak defaults; override in your own sources)           */
 /* ------------------------------------------------------------------------- */
 
+__weak void sensor_svc_temperature_on_read(void)
+{
+}
+__weak void sensor_svc_temperature_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
+}
+
+__weak void sensor_svc_humidity_on_read(void)
+{
+}
+__weak void sensor_svc_humidity_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
+}
+
+__weak void sensor_svc_sampling_rate_on_read(void)
+{
+}
 __weak void sensor_svc_sampling_rate_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);

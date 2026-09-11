@@ -67,12 +67,15 @@ int notify_svc_button_set(const uint8_t *data, uint16_t len)
 
 int notify_svc_button_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(notify_svc_button_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(notify_svc_button_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&notify_svc_button_lock, K_FOREVER);
-	memcpy(data, notify_svc_button_value, len);
+	memcpy(data, notify_svc_button_value, MIN(len, sizeof(notify_svc_button_value)));
 	k_mutex_unlock(&notify_svc_button_lock);
 
 	return 0;
@@ -93,12 +96,15 @@ int notify_svc_led_set(const uint8_t *data, uint16_t len)
 
 int notify_svc_led_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(notify_svc_led_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(notify_svc_led_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&notify_svc_led_lock, K_FOREVER);
-	memcpy(data, notify_svc_led_value, len);
+	memcpy(data, notify_svc_led_value, MIN(len, sizeof(notify_svc_led_value)));
 	k_mutex_unlock(&notify_svc_led_lock);
 
 	return 0;
@@ -113,6 +119,8 @@ static ssize_t notify_svc_button_read(struct bt_conn *conn, const struct bt_gatt
 {
 	ssize_t ret;
 
+	notify_svc_button_on_read();
+
 	k_mutex_lock(&notify_svc_button_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, notify_svc_button_value,
 				sizeof(notify_svc_button_value));
@@ -123,15 +131,21 @@ static ssize_t notify_svc_button_read(struct bt_conn *conn, const struct bt_gatt
 
 static void notify_svc_button_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == BT_GATT_CCC_NOTIFY;
+
 	ARG_UNUSED(attr);
 
-	printk("button notifications %s\n", value == BT_GATT_CCC_NOTIFY ? "enabled" : "disabled");
+	printk("button notifications %s\n", enabled ? "enabled" : "disabled");
+
+	notify_svc_button_on_ccc(enabled);
 }
 
 static ssize_t notify_svc_led_read(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
 				   uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	notify_svc_led_on_read();
 
 	k_mutex_lock(&notify_svc_led_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, notify_svc_led_value,
@@ -169,6 +183,17 @@ static ssize_t notify_svc_led_write(struct bt_conn *conn, const struct bt_gatt_a
 /* Application hooks (weak defaults; override in your own sources)           */
 /* ------------------------------------------------------------------------- */
 
+__weak void notify_svc_button_on_read(void)
+{
+}
+__weak void notify_svc_button_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
+}
+
+__weak void notify_svc_led_on_read(void)
+{
+}
 __weak void notify_svc_led_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);

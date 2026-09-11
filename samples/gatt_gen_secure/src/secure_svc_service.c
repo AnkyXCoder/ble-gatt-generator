@@ -54,12 +54,15 @@ int secure_svc_secret_set(const uint8_t *data, uint16_t len)
 
 int secure_svc_secret_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(secure_svc_secret_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(secure_svc_secret_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&secure_svc_secret_lock, K_FOREVER);
-	memcpy(data, secure_svc_secret_value, len);
+	memcpy(data, secure_svc_secret_value, MIN(len, sizeof(secure_svc_secret_value)));
 	k_mutex_unlock(&secure_svc_secret_lock);
 
 	return 0;
@@ -73,6 +76,8 @@ static ssize_t secure_svc_secret_read(struct bt_conn *conn, const struct bt_gatt
 				      void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	secure_svc_secret_on_read();
 
 	k_mutex_lock(&secure_svc_secret_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, secure_svc_secret_value,
@@ -111,6 +116,9 @@ static ssize_t secure_svc_secret_write(struct bt_conn *conn, const struct bt_gat
 /* Application hooks (weak defaults; override in your own sources)           */
 /* ------------------------------------------------------------------------- */
 
+__weak void secure_svc_secret_on_read(void)
+{
+}
 __weak void secure_svc_secret_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);

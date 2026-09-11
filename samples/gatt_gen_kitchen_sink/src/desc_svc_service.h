@@ -13,6 +13,7 @@
 #ifndef BLE_GATT_GENERATOR_DESC_SVC_H_
 #define BLE_GATT_GENERATOR_DESC_SVC_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <zephyr/bluetooth/uuid.h>
@@ -65,6 +66,14 @@ int desc_svc_described_set(const uint8_t *data, uint16_t len);
  */
 int desc_svc_described_get(uint8_t *data, uint16_t len);
 
+/** @brief Application hook called before a peer reads described.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void desc_svc_described_on_read(void);
+
 /** @brief Update and notify the described characteristic.
  *
  *  @param data Pointer to the new value.
@@ -73,6 +82,16 @@ int desc_svc_described_get(uint8_t *data, uint16_t len);
  *  @return 0 on success, or a negative error code (see bt_gatt_notify_uuid()).
  */
 int desc_svc_described_notify(const uint8_t *data, uint16_t len);
+
+/** @brief Application hook called when described CCC state changes.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to react to a peer enabling/disabling
+ *  notifications.
+ *
+ *  @param enabled True when notifications were enabled.
+ */
+void desc_svc_described_on_ccc(bool enabled);
 
 /** @brief Set the full_meta characteristic value.
  *
@@ -97,6 +116,14 @@ int desc_svc_full_meta_set(const uint8_t *data, uint16_t len);
  *  @retval -EINVAL if @p data is NULL or @p len is too large.
  */
 int desc_svc_full_meta_get(uint8_t *data, uint16_t len);
+
+/** @brief Application hook called before a peer reads full_meta.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void desc_svc_full_meta_on_read(void);
 
 /** @brief Application hook called after a peer writes full_meta.
  *
@@ -132,6 +159,14 @@ int desc_svc_plain_set(const uint8_t *data, uint16_t len);
  *  @retval -EINVAL if @p data is NULL or @p len is too large.
  */
 int desc_svc_plain_get(uint8_t *data, uint16_t len);
+
+/** @brief Application hook called before a peer reads plain.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void desc_svc_plain_on_read(void);
 
 /** @} */
 

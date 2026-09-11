@@ -102,12 +102,32 @@ class Characteristic(BaseModel):
     permissions: list[str]
     size: int = Field(default=1, ge=1, le=512)
     thread_safe: bool = True
+    variable: bool = False
+    initial_value: Optional[str] = None
     descriptors: list[Descriptor] = Field(default_factory=list)
 
     @field_validator("uuid")
     @classmethod
     def _valid_uuid(cls, v: str) -> str:
         return normalize_uuid(v)
+
+    @field_validator("initial_value")
+    @classmethod
+    def _valid_initial_value(cls, v: Optional[str]) -> Optional[str]:
+        """Accept 0x-prefixed hex bytes or a plain string."""
+        if v is None:
+            return v
+        if v.startswith("0x"):
+            hexpart = v[2:]
+            if not hexpart or len(hexpart) % 2:
+                raise ValueError(
+                    f"initial_value hex {v!r} needs an even number of digits")
+            try:
+                bytes.fromhex(hexpart)
+            except ValueError:
+                raise ValueError(
+                    f"initial_value {v!r} is not valid hex") from None
+        return v
 
     @field_validator("properties")
     @classmethod
@@ -145,7 +165,23 @@ class Characteristic(BaseModel):
         if len(types) != len(set(types)):
             raise ValueError(
                 "Duplicate descriptor types on one characteristic")
+        if self.initial_bytes() and len(self.initial_bytes()) > self.size:
+            raise ValueError(
+                f"initial_value is {len(self.initial_bytes())} bytes but "
+                f"size is {self.size}")
         return self
+
+    def initial_bytes(self) -> bytes:
+        """Return the decoded initial value, or empty bytes if unset."""
+        if self.initial_value is None:
+            return b""
+        if self.initial_value.startswith("0x"):
+            return bytes.fromhex(self.initial_value[2:])
+        return self.initial_value.encode()
+
+    def initial_c(self) -> str:
+        """Return a C array initialiser for the decoded initial value."""
+        return "{ " + ", ".join(f"0x{b:02x}" for b in self.initial_bytes()) + " }"
 
     def properties_macro(self) -> str:
         if not self.properties:
@@ -232,7 +268,17 @@ class Profile(BaseModel):
     """Top-level GATT profile."""
 
     name: str = Field(..., pattern=r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+    role: str = "peripheral"
     services: list[Service]
+
+    @field_validator("role")
+    @classmethod
+    def _valid_role(cls, v: str) -> str:
+        v = v.lower().strip()
+        if v not in ("peripheral", "central", "both"):
+            raise ValueError(
+                f"role must be peripheral, central or both, got {v!r}")
+        return v
 
     @model_validator(mode="after")
     def _non_empty(self) -> "Profile":
@@ -280,6 +326,29 @@ class Profile(BaseModel):
             for svc in self.services
             for chrc in svc.characteristics
         )
+
+    def is_peripheral(self) -> bool:
+        return self.role in ("peripheral", "both")
+
+    def is_central(self) -> bool:
+        return self.role in ("central", "both")
+
+    def sig_uuid_warnings(self) -> list[str]:
+        """Warn when custom entities use the SIG-reserved 16-bit UUID range."""
+        warnings = []
+        for svc in self.services:
+            if not svc.is_128_bit():
+                warnings.append(
+                    f"service {svc.name!r} uses 16-bit UUID {svc.uuid} — "
+                    "16-bit UUIDs are assigned by the Bluetooth SIG; use a "
+                    "128-bit UUID for custom services")
+            for chrc in svc.characteristics:
+                if not chrc.is_128_bit():
+                    warnings.append(
+                        f"characteristic {svc.name}/{chrc.name} uses 16-bit "
+                        f"UUID {chrc.uuid} — ensure it matches a SIG-assigned "
+                        "characteristic")
+        return warnings
 
 
 def load_profile(path: str) -> Profile:

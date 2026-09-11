@@ -13,6 +13,7 @@
 #ifndef BLE_GATT_GENERATOR_SECURE_SVC_H_
 #define BLE_GATT_GENERATOR_SECURE_SVC_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <zephyr/bluetooth/uuid.h>
@@ -58,6 +59,14 @@ int secure_svc_secret_set(const uint8_t *data, uint16_t len);
  *  @retval -EINVAL if @p data is NULL or @p len is too large.
  */
 int secure_svc_secret_get(uint8_t *data, uint16_t len);
+
+/** @brief Application hook called before a peer reads secret.
+ *
+ *  Defined as a weak no-op in the generated source. Define it in your own
+ *  code to refresh the value or gate the read; it runs from the Bluetooth
+ *  RX context, so keep it short.
+ */
+void secure_svc_secret_on_read(void);
 
 /** @brief Application hook called after a peer writes secret.
  *

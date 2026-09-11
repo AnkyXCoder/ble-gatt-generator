@@ -56,12 +56,15 @@ int minimal_svc_read_only_set(const uint8_t *data, uint16_t len)
 
 int minimal_svc_read_only_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(minimal_svc_read_only_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(minimal_svc_read_only_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&minimal_svc_read_only_lock, K_FOREVER);
-	memcpy(data, minimal_svc_read_only_value, len);
+	memcpy(data, minimal_svc_read_only_value, MIN(len, sizeof(minimal_svc_read_only_value)));
 	k_mutex_unlock(&minimal_svc_read_only_lock);
 
 	return 0;
@@ -82,12 +85,15 @@ int minimal_svc_read_write_set(const uint8_t *data, uint16_t len)
 
 int minimal_svc_read_write_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(minimal_svc_read_write_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(minimal_svc_read_write_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&minimal_svc_read_write_lock, K_FOREVER);
-	memcpy(data, minimal_svc_read_write_value, len);
+	memcpy(data, minimal_svc_read_write_value, MIN(len, sizeof(minimal_svc_read_write_value)));
 	k_mutex_unlock(&minimal_svc_read_write_lock);
 
 	return 0;
@@ -102,6 +108,8 @@ static ssize_t minimal_svc_read_only_read(struct bt_conn *conn, const struct bt_
 {
 	ssize_t ret;
 
+	minimal_svc_read_only_on_read();
+
 	k_mutex_lock(&minimal_svc_read_only_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, minimal_svc_read_only_value,
 				sizeof(minimal_svc_read_only_value));
@@ -114,6 +122,8 @@ static ssize_t minimal_svc_read_write_read(struct bt_conn *conn, const struct bt
 					   void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	minimal_svc_read_write_on_read();
 
 	k_mutex_lock(&minimal_svc_read_write_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, minimal_svc_read_write_value,
@@ -153,6 +163,13 @@ static ssize_t minimal_svc_read_write_write(struct bt_conn *conn, const struct b
 /* Application hooks (weak defaults; override in your own sources)           */
 /* ------------------------------------------------------------------------- */
 
+__weak void minimal_svc_read_only_on_read(void)
+{
+}
+
+__weak void minimal_svc_read_write_on_read(void)
+{
+}
 __weak void minimal_svc_read_write_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);

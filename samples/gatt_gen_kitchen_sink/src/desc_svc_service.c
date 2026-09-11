@@ -76,12 +76,15 @@ int desc_svc_described_set(const uint8_t *data, uint16_t len)
 
 int desc_svc_described_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(desc_svc_described_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(desc_svc_described_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&desc_svc_described_lock, K_FOREVER);
-	memcpy(data, desc_svc_described_value, len);
+	memcpy(data, desc_svc_described_value, MIN(len, sizeof(desc_svc_described_value)));
 	k_mutex_unlock(&desc_svc_described_lock);
 
 	return 0;
@@ -102,12 +105,15 @@ int desc_svc_full_meta_set(const uint8_t *data, uint16_t len)
 
 int desc_svc_full_meta_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(desc_svc_full_meta_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(desc_svc_full_meta_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&desc_svc_full_meta_lock, K_FOREVER);
-	memcpy(data, desc_svc_full_meta_value, len);
+	memcpy(data, desc_svc_full_meta_value, MIN(len, sizeof(desc_svc_full_meta_value)));
 	k_mutex_unlock(&desc_svc_full_meta_lock);
 
 	return 0;
@@ -128,12 +134,15 @@ int desc_svc_plain_set(const uint8_t *data, uint16_t len)
 
 int desc_svc_plain_get(uint8_t *data, uint16_t len)
 {
-	if (data == NULL || len > sizeof(desc_svc_plain_value)) {
+	if (data == NULL) {
+		return -EINVAL;
+	}
+	if (len > sizeof(desc_svc_plain_value)) {
 		return -EINVAL;
 	}
 
 	k_mutex_lock(&desc_svc_plain_lock, K_FOREVER);
-	memcpy(data, desc_svc_plain_value, len);
+	memcpy(data, desc_svc_plain_value, MIN(len, sizeof(desc_svc_plain_value)));
 	k_mutex_unlock(&desc_svc_plain_lock);
 
 	return 0;
@@ -148,6 +157,8 @@ static ssize_t desc_svc_described_read(struct bt_conn *conn, const struct bt_gat
 {
 	ssize_t ret;
 
+	desc_svc_described_on_read();
+
 	k_mutex_lock(&desc_svc_described_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, desc_svc_described_value,
 				sizeof(desc_svc_described_value));
@@ -158,16 +169,21 @@ static ssize_t desc_svc_described_read(struct bt_conn *conn, const struct bt_gat
 
 static void desc_svc_described_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	bool enabled = value == BT_GATT_CCC_NOTIFY;
+
 	ARG_UNUSED(attr);
 
-	printk("described notifications %s\n",
-	       value == BT_GATT_CCC_NOTIFY ? "enabled" : "disabled");
+	printk("described notifications %s\n", enabled ? "enabled" : "disabled");
+
+	desc_svc_described_on_ccc(enabled);
 }
 
 static ssize_t desc_svc_full_meta_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 				       void *buf, uint16_t len, uint16_t offset)
 {
 	ssize_t ret;
+
+	desc_svc_full_meta_on_read();
 
 	k_mutex_lock(&desc_svc_full_meta_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, desc_svc_full_meta_value,
@@ -207,6 +223,8 @@ static ssize_t desc_svc_plain_read(struct bt_conn *conn, const struct bt_gatt_at
 {
 	ssize_t ret;
 
+	desc_svc_plain_on_read();
+
 	k_mutex_lock(&desc_svc_plain_lock, K_FOREVER);
 	ret = bt_gatt_attr_read(conn, attr, buf, len, offset, desc_svc_plain_value,
 				sizeof(desc_svc_plain_value));
@@ -219,10 +237,25 @@ static ssize_t desc_svc_plain_read(struct bt_conn *conn, const struct bt_gatt_at
 /* Application hooks (weak defaults; override in your own sources)           */
 /* ------------------------------------------------------------------------- */
 
+__weak void desc_svc_described_on_read(void)
+{
+}
+__weak void desc_svc_described_on_ccc(bool enabled)
+{
+	ARG_UNUSED(enabled);
+}
+
+__weak void desc_svc_full_meta_on_read(void)
+{
+}
 __weak void desc_svc_full_meta_on_write(const uint8_t *data, uint16_t len)
 {
 	ARG_UNUSED(data);
 	ARG_UNUSED(len);
+}
+
+__weak void desc_svc_plain_on_read(void)
+{
 }
 
 /* ------------------------------------------------------------------------- */
